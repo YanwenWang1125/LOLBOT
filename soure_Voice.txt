@@ -7,16 +7,3 @@ nova_voice_id = b5fe37182e63465486a09fb429fa78f2
 老太_voice_id = 1b0238b2782e43daa7e3d1625df32257
 
 taffy = 156b6abab27e43a5a648cbff6f659bc3
-
-(base) C:\Users\Leo\AI projects\LOLBOT>python services/voicV_clone.py
-返回： {
-  "code": 200,
-  "message": "success",
-  "data": {
-    "voiceId": "156b6abab27e43a5a648cbff6f659bc3",
-    "costCredits": 1000
-  }
-}
-✅ 克隆完成，voiceId = 156b6abab27e43a5a648cbff6f659bc3
-
-(base) C:\Users\Leo\AI projects\LOLBOT>
