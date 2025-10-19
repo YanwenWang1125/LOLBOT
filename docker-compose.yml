@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  lolbot:
+    build: .
+    container_name: lolbot
+    restart: unless-stopped
+    environment:
+      - RIOT_API_KEY=${RIOT_API_KEY}
+      - GAME_NAME=${GAME_NAME}
+      - TAG_LINE=${TAG_LINE}
+      - REGION=${REGION:-na1}
+      - REGION_ROUTE=${REGION_ROUTE:-americas}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - VOICV_API_KEY=${VOICV_API_KEY}
+      - VOICV_VOICE_ID=${VOICV_VOICE_ID}
+    volumes:
+      - ./analysis:/app/analysis
+      - ./audio:/app/audio
+      - ./audio_source:/app/audio_source
+    networks:
+      - lolbot-network
+
+networks:
+  lolbot-network:
+    driver: bridge
