@@ -1,0 +1,112 @@
+# LOLBOT Project .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Project-specific generated files
+# Analysis files (keep structure but ignore content)
+analysis/*.json
+analysis/*.txt
+!analysis/.gitkeep
+
+# Audio files (generated content)
+audio/*.mp3
+audio/*.wav
+audio/*.m4a
+audio/*.aac
+!audio/.gitkeep
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# API Keys and sensitive data
+config.json
+secrets.json
+*.key
+*.pem
+
+# Discord Bot specific
+discord_bot.log
+bot.log
+
+# Riot API cache
+riot_cache/
+match_cache/
+
+# VoicV TTS cache
+tts_cache/
+voice_cache/
+
+# Test outputs
+test_output/
+test_results/
+
+# Backup files
+*.bak
+*.backup
+*_backup.*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# Project specific temporary files
+processed_matches.json
+*.orig
+*_ori.py
