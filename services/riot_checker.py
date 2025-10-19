@@ -14,6 +14,165 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.utils import ensure_directory, get_analysis_filename, save_json_file
 
+# 英雄名字映射表（英文到中文）
+CHAMPION_NAME_MAPPING = {
+    "Aatrox": "剑魔",
+    "Ahri": "阿狸",
+    "Akali": "阿卡丽",
+    "Akshan": "阿克尚",
+    "Alistar": "牛头",
+    "Amumu": "阿木木",
+    "Anivia": "冰鸟",
+    "Annie": "安妮",
+    "Aphelios": "厄斐琉斯",
+    "Ashe": "艾希",
+    "Azir": "沙皇",
+    "Bard": "巴德",
+    "Bel'Veth": "卑尔维斯",
+    "Blitzcrank": "机器人",
+    "Brand": "火男",
+    "Braum": "布隆",
+    "Caitlyn": "女警",
+    "Camille": "卡蜜尔",
+    "Cassiopeia": "蛇女",
+    "Cho'Gath": "虫子",
+    "Corki": "飞机",
+    "Darius": "德莱文",
+    "Diana": "黛安娜",
+    "Draven": "德莱文",
+    "Dr. Mundo": "蒙多医生",
+    "Ekko": "艾克",
+    "Elise": "伊莉丝",
+    "Evelynn": "伊芙琳",
+    "Ezreal": "EZ",
+    "Fiddlesticks": "费德提克",
+    "Fiora": "菲奥娜",
+    "Fizz": "小鱼人",
+    "Galio": "加里奥",
+    "Gangplank": "船长",
+    "Garen": "盖伦",
+    "Gnar": "纳尔",
+    "Gragas": "酒桶",
+    "Graves": "男枪",
+    "Gwen": "格温",
+    "Hecarim": "人马",
+    "Heimerdinger": "大头",
+    "Illaoi": "俄洛伊",
+    "Irelia": "刀妹",
+    "Ivern": "艾翁",
+    "Janna": "风女",
+    "Jarvan IV": "皇子",
+    "Jax": "贾克斯",
+    "Jayce": "杰斯",
+    "Jhin": "烬",
+    "Jinx": "金克丝",
+    "Kai'Sa": "卡莎",
+    "Kalista": "卡莉丝塔",
+    "Karma": "卡尔玛",
+    "Karthus": "死歌",
+    "Kassadin": "卡萨丁",
+    "Katarina": "卡特琳娜",
+    "Kayle": "天使",
+    "Kayn": "凯隐",
+    "Kennen": "凯南",
+    "Kha'Zix": "螳螂",
+    "Kindred": "千珏",
+    "Kled": "克烈",
+    "Kog'Maw": "大嘴",
+    "LeBlanc": "妖姬",
+    "Lee Sin": "盲僧",
+    "Leona": "日女",
+    "Lillia": "莉莉娅",
+    "Lissandra": "冰女",
+    "Lucian": "卢锡安",
+    "Lulu": "璐璐",
+    "Lux": "拉克丝",
+    "Malphite": "石头人",
+    "Malzahar": "蚂蚱",
+    "Maokai": "大树",
+    "Master Yi": "剑圣",
+    "Miss Fortune": "女枪",
+    "Mordekaiser": "铁男",
+    "Morgana": "莫甘娜",
+    "Nami": "娜美",
+    "Nasus": "狗头",
+    "Nautilus": "泰坦",
+    "Neeko": "妮蔻",
+    "Nidalee": "豹女",
+    "Nocturne": "梦魇",
+    "Nunu & Willump": "努努",
+    "Olaf": "奥拉夫",
+    "Orianna": "奥莉安娜",
+    "Ornn": "奥恩",
+    "Pantheon": "潘森",
+    "Poppy": "波比",
+    "Pyke": "派克",
+    "Qiyana": "奇亚娜",
+    "Quinn": "奎因",
+    "Rakan": "洛",
+    "Rammus": "龙龟",
+    "Rek'Sai": "挖掘机",
+    "Rell": "芮尔",
+    "Renekton": "鳄鱼",
+    "Rengar": "狮子狗",
+    "Riven": "瑞文",
+    "Rumble": "兰博",
+    "Ryze": "瑞兹",
+    "Samira": "莎弥拉",
+    "Sejuani": "猪妹",
+    "Senna": "赛娜",
+    "Seraphine": "萨勒芬妮",
+    "Sett": "瑟提",
+    "Shaco": "小丑",
+    "Shen": "慎",
+    "Shyvana": "龙女",
+    "Singed": "炼金",
+    "Sion": "赛恩",
+    "Sivir": "希维尔",
+    "Swain": "乌鸦",
+    "Sylas": "塞拉斯",
+    "Syndra": "辛德拉",
+    "Tahm Kench": "塔姆",
+    "Taliyah": "岩雀",
+    "Talon": "男刀",
+    "Taric": "宝石",
+    "Teemo": "提莫",
+    "Thresh": "锤石",
+    "Tristana": "小炮",
+    "Trundle": "巨魔",
+    "Tryndamere": "蛮王",
+    "Twisted Fate": "卡牌",
+    "Twitch": "老鼠",
+    "Udyr": "乌迪尔",
+    "Urgot": "厄加特",
+    "Varus": "韦鲁斯",
+    "Vayne": "薇恩",
+    "Veigar": "小法",
+    "Vel'Koz": "大眼",
+    "Vex": "薇古丝",
+    "Vi": "蔚",
+    "Viego": "佛耶戈",
+    "Viktor": "维克托",
+    "Vladimir": "吸血鬼",
+    "Volibear": "狗熊",
+    "Warwick": "狼人",
+    "Wukong": "猴子",
+    "Xayah": "霞",
+    "Xerath": "泽拉斯",
+    "Xin Zhao": "赵信",
+    "Yasuo": "亚索",
+    "Yone": "永恩",
+    "Yorick": "掘墓",
+    "Yuumi": "猫咪",
+    "Zac": "扎克",
+    "Zed": "劫",
+    "Zeri": "泽丽",
+    "Ziggs": "炸弹人",
+    "Zilean": "老头",
+    "Zoe": "佐伊",
+    "Zyra": "婕拉"
+}
+
 # 加载环境变量
 load_dotenv()
 
@@ -30,6 +189,11 @@ SUMMONER_BASE = f"https://{REGION}.api.riotgames.com/lol/summoner/v4"
 MATCH_BASE = f"https://{REGION_ROUTE}.api.riotgames.com/lol/match/v5"
 
 HEADERS = {"X-Riot-Token": RIOT_API_KEY}
+
+
+def get_chinese_champion_name(english_name):
+    """获取英雄的中文名字"""
+    return CHAMPION_NAME_MAPPING.get(english_name, english_name)
 
 
 def get_summoner_info():
@@ -135,6 +299,18 @@ def analyze_match_data(match_data, summoner_info):
         mvp = team_participants[0]
         lvp = team_participants[-1]
         
+        # 获取玩家名字，尝试多个字段
+        player_name = player_info.get('summonerName', '') or player_info.get('riotIdGameName', '') or summoner_info.get('summoner_name', '') or summoner_info.get('game_name', '')
+        
+        # 获取MVP和LVP的名字
+        mvp_name = mvp.get('summonerName', '') or mvp.get('riotIdGameName', '')
+        lvp_name = lvp.get('summonerName', '') or lvp.get('riotIdGameName', '')
+        
+        # 调试信息
+        print(f"[DEBUG] 玩家信息字段: {list(player_info.keys())}")
+        print(f"[DEBUG] 玩家名字: summonerName='{player_info.get('summonerName', '')}', riotIdGameName='{player_info.get('riotIdGameName', '')}'")
+        print(f"[DEBUG] 召唤师信息: {summoner_info}")
+        
         # 构建分析结果
         analysis = {
             'match_id': match_data['metadata']['matchId'],
@@ -145,8 +321,9 @@ def analyze_match_data(match_data, summoner_info):
             'map_id': match_data['info']['mapId'],
             'queue_id': match_data['info']['queueId'],
             'player_info': {
-                'name': player_info['summonerName'],
+                'name': player_name,
                 'champion': player_info['championName'],
+                'champion_chinese': get_chinese_champion_name(player_info['championName']),
                 'kills': player_info['kills'],
                 'deaths': player_info['deaths'],
                 'assists': player_info['assists'],
@@ -157,16 +334,18 @@ def analyze_match_data(match_data, summoner_info):
                 'result': '胜利' if team_info['win'] else '失败'
             },
             'team_mvp': {
-                'name': mvp['summonerName'],
+                'name': mvp_name,
                 'champion': mvp['championName'],
+                'champion_chinese': get_chinese_champion_name(mvp['championName']),
                 'kills': mvp['kills'],
                 'deaths': mvp['deaths'],
                 'assists': mvp['assists'],
                 'kda': f"{mvp['kills']}/{mvp['deaths']}/{mvp['assists']}"
             },
             'team_lvp': {
-                'name': lvp['summonerName'],
+                'name': lvp_name,
                 'champion': lvp['championName'],
+                'champion_chinese': get_chinese_champion_name(lvp['championName']),
                 'kills': lvp['kills'],
                 'deaths': lvp['deaths'],
                 'assists': lvp['assists'],

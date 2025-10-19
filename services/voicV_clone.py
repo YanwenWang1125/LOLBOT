@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_KEY = os.getenv("VOICV_API_KEY")
-AUDIO_PATH = r"C:\Users\Leo\AI projects\LOLBOT\audio_source\voice-message.mp3"
+AUDIO_PATH = r"C:\Users\Leo\AI projects\LOLBOT\audio_source\laotai.mp3"
 if not API_KEY:
     print("缺少环境变量 VOICV_API_KEY"); sys.exit(1)
 if not AUDIO_PATH or not os.path.exists(AUDIO_PATH):

@@ -42,17 +42,14 @@ def convert_to_chinese_mature_tone(match_data):
 
     表达要求：
     - 全程使用第二人称视角，称呼队友为“你”。
-    - 评论要兼具理性和情感：既分析你们队友的表现，也带点轻佻、讽刺、暧昧或抱怨。
-    - 对最强玩家：带一点“不情愿的赞叹”。
-    - 对最弱玩家：带“温柔的嘲讽”、“阴阳怪气”或“语带怨气的吐槽”。
+    - 评论要兼具理性和情感：既分析你们队友的表现，也带点轻佻、讽刺、抱怨。
+    - 对最强玩家： 称赞， 但是加入几句感觉不如我。
+    - 对最弱玩家：带“强烈的嘲讽”、“阴阳怪气”或“语带怨气的吐槽”，不留一点情面。
     - 内容自然、有画面感、有一点生活化的戏剧。
     - 不罗列具体数据，但要暗示战绩表现。
     - 句数不超过三句。
 
-    输出例子：
-    - 哥们能玩就玩 不玩就下把走人。你那一波线不吃能死是吗？龙给了？
-    - 玩个坦克不开团等队友被poke死是吗？你去送我还能接受。
-
+   
 
     语气标签：
     可使用 (serious)、(whisper)、(soft)、(sad)、(laugh softly)、(long_pause)、(breath)
@@ -60,19 +57,24 @@ def convert_to_chinese_mature_tone(match_data):
 
     比赛信息：
     - 结果: {match_data['player_info']['result']}
-    - 最强玩家: {mvp_username} 使用 {match_data['team_mvp']['champion']}
-    - 最弱玩家: {lvp_username} 使用 {match_data['team_lvp']['champion']}
-    （玩家名可为英文或其他语言，英雄名必须使用中文。）
+    - 最强玩家: {mvp_username} 使用 {match_data['team_mvp']['champion_chinese']}
+    - 最弱玩家: {lvp_username} 使用 {match_data['team_lvp']['champion_chinese']}
+    
 
     输出要求：
-    请生成一段符合以上要求的搞子风格中文评论，最多三句话。
+    请生成一段符合以上要求的搞子风格中文评论, 必须体现玩家名字和玩家使用英雄，最多三句话。
+
+
+     输出例子：
+    - 哥们能玩就玩 不玩就下把走人。你那一波线不吃能死是吗？龙给了？
+    - 玩个坦克不开团等队友被poke死是吗？你去送我还能接受。
     """
 
     try:
         response = client.chat.completions.create(
             model="gpt-4.1-mini",
             messages=[
-                {"role": "system", "content": "你现在是一个搞子，串子，语气轻佻、嚣张、调皮, 压力，责怪队友，抱怨队友，你的核心任务是分析比赛数据，并生成一段自然流畅的中文嘲讽段落。"},
+                {"role": "system", "content": "你现在是一个搞子，串子，语气轻佻、嚣张, 压力，责怪队友，抱怨队友，你的核心任务是分析比赛数据，并生成一段自然流畅的中文嘲讽段落。"},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500,
