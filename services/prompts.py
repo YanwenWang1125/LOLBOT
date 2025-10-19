@@ -107,7 +107,7 @@ STYLE_CONFIGS = {
     "default": {
         "prompt": DEFAULT_PROMPT,
         "system_role": DEFAULT_SYSTEM_ROLE,
-        "voice_id": "b5fe37182e63465486a09fb429fa78f2",  # 使用默认语音ID
+        "voice_id": "cdf5f2a7604849e2a5ccd07ccf628ee6",  # 使用默认语音ID
         "description": "搞子风格 - 轻佻、嚣张、带点阴阳怪气"
     },
     "professional": {
