@@ -54,6 +54,12 @@ DEFAULT_PROMPT = """
 
 DEFAULT_SYSTEM_ROLE = "你现在是一个搞子，串子，语气轻佻、嚣张, 压力，责怪队友，抱怨队友，你的核心任务是分析比赛数据，并生成一段自然流畅的中文嘲讽段落。"
 
+
+
+
+
+
+
 # 专业风格配置
 PROFESSIONAL_PROMPT = """
 你是一位专业的电竞解说员，请根据比赛数据生成一段专业、客观的游戏分析。
@@ -101,16 +107,19 @@ STYLE_CONFIGS = {
     "default": {
         "prompt": DEFAULT_PROMPT,
         "system_role": DEFAULT_SYSTEM_ROLE,
+        "voice_id": "b5fe37182e63465486a09fb429fa78f2",  # 使用默认语音ID
         "description": "搞子风格 - 轻佻、嚣张、带点阴阳怪气"
     },
     "professional": {
         "prompt": PROFESSIONAL_PROMPT,
         "system_role": PROFESSIONAL_SYSTEM_ROLE,
+        "voice_id": "297a903ffa674f1fb805ac3c9c7f7aa5",  # 使用默认语音ID
         "description": "专业风格 - 客观、专业、建设性"
     },
     "humorous": {
         "prompt": HUMOROUS_PROMPT,
         "system_role": HUMOROUS_SYSTEM_ROLE,
+        "voice_id": "cdf5f2a7604849e2a5ccd07ccf628ee6",  # 使用默认语音ID
         "description": "幽默风格 - 轻松、幽默、积极正面"
     }
 }
@@ -123,7 +132,7 @@ def get_style_config(style_name="default"):
         style_name (str): 风格名称，可选: default, professional, humorous
     
     Returns:
-        dict: 包含 prompt 和 system_role 的配置字典
+        dict: 包含 prompt, system_role 和 voice_id 的配置字典
     """
     return STYLE_CONFIGS.get(style_name, STYLE_CONFIGS["default"])
 

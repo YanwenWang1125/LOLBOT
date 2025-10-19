@@ -20,7 +20,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
 from services.riot_checker import main as get_match_data
 from services.match_analyzer import convert_to_chinese_mature_tone, load_json_file
 from services.voicv_tts import generate_tts_audio
-from services.utils import find_latest_json_file, ensure_directory
+from services.utils import find_latest_json_file, ensure_directory, cleanup_old_files, get_file_count_info
 
 # 加载环境变量
 load_dotenv()
@@ -43,6 +43,7 @@ class LOLWorkflow:
         self.current_match_file = None
         self.chinese_analysis = None
         self.audio_file = None
+        self.voice_id = None  # 从风格配置中获取的voice_id
         self.ctx = ctx  # Discord context for sending status updates
         
     async def step1_get_match_data(self):
@@ -93,10 +94,12 @@ class LOLWorkflow:
             if not match_data:
                 raise ValueError("无法加载游戏数据")
             
-            # 转换为中文分析
-            self.chinese_analysis = convert_to_chinese_mature_tone(match_data, prompt, system_role, style)
-            if not self.chinese_analysis:
+            # 转换为中文分析，获取分析文本和voice_id
+            result = convert_to_chinese_mature_tone(match_data, prompt, system_role, style)
+            if not result or result[0] is None:
                 raise ValueError("AI分析生成失败")
+            
+            self.chinese_analysis, self.voice_id = result
             
             print("[OK] 中文分析生成成功")
             print(f"📝 分析内容: {self.chinese_analysis[:100]}...")
@@ -121,8 +124,8 @@ class LOLWorkflow:
             if not self.chinese_analysis:
                 raise ValueError("没有可用的中文分析内容")
             
-            # 使用 voicV TTS API生成音频
-            self.audio_file = generate_tts_audio(self.chinese_analysis)
+            # 使用 voicV TTS API生成音频，传入voice_id
+            self.audio_file = generate_tts_audio(self.chinese_analysis, voice_id=self.voice_id)
             if not self.audio_file:
                 raise ValueError("TTS生成失败")
             
@@ -220,6 +223,12 @@ class LOLWorkflow:
         if voice_channel_id:
             if not await self.step4_discord_play(voice_channel_id):
                 return False
+        
+        # 步骤5: 清理旧文件（只保留最近5次记录）
+        print("🧹 清理旧文件...")
+        cleanup_stats = cleanup_old_files(keep_count=5)
+        if cleanup_stats['analysis'] > 0 or cleanup_stats['audio'] > 0:
+            print(f"✅ 清理完成: 删除了 {cleanup_stats['analysis']} 个分析文件, {cleanup_stats['audio']} 个音频文件")
         
         print("🎉 完整流程执行成功!")
         return True
@@ -356,6 +365,27 @@ async def lol_style_analysis(ctx, style: str = "default"):
         await ctx.reply(f"❌ **执行失败**: {e}")
 
 
+@bot.command(name="files")
+async def show_file_stats(ctx):
+    """
+    显示文件统计信息
+    用法: !files
+    """
+    try:
+        stats = get_file_count_info()
+        
+        stats_msg = f"📊 **文件统计信息**\n"
+        stats_msg += f"📄 分析文件: {stats['analysis']} 个\n"
+        stats_msg += f"🎵 音频文件: {stats['audio']} 个\n"
+        stats_msg += f"📝 中文分析: {stats['chinese_analysis']} 个\n"
+        stats_msg += f"💾 总计: {sum(stats.values())} 个文件"
+        
+        await ctx.reply(stats_msg)
+        
+    except Exception as e:
+        await ctx.reply(f"❌ **获取统计失败**: {e}")
+
+
 @bot.event
 async def on_ready():
     print(f"✅ Discord Bot已登录: {bot.user}")
@@ -365,8 +395,10 @@ async def on_ready():
     print("  !lol_style [风格] - 运行指定风格分析流程")
     print("  !lol_custom [自定义提示词] - 运行自定义分析流程")
     print("  !test - 测试工作流程（不播放音频）")
+    print("  !files - 显示文件统计信息")
     print("  可用风格: default(搞子), professional(专业), humorous(幽默)")
     print("  注意: 使用前请先加入语音频道")
+    print("  文件管理: 自动保留最近5次记录，无需手动清理")
 
 
 def main():

@@ -32,7 +32,7 @@ def convert_to_chinese_mature_tone(match_data, prompt=None, system_role=None, st
         style (str, optional): Style name (default, professional, humorous). Defaults to "default"
     
     Returns:
-        str: Generated Chinese analysis text, or None if failed
+        tuple: (Generated Chinese analysis text, voice_id) or (None, None) if failed
     """
     
     # Get style configuration if custom prompt/role not provided
@@ -42,6 +42,11 @@ def convert_to_chinese_mature_tone(match_data, prompt=None, system_role=None, st
             prompt = style_config["prompt"]
         if system_role is None:
             system_role = style_config["system_role"]
+        
+        # Get voice_id from style config
+        voice_id = style_config.get("voice_id")
+    else:
+        voice_id = None
     
     # Format the prompt with match data
     formatted_prompt = format_prompt(prompt, match_data)
@@ -57,11 +62,11 @@ def convert_to_chinese_mature_tone(match_data, prompt=None, system_role=None, st
             temperature=0.7
         )
         
-        return response.choices[0].message.content.strip()
+        return response.choices[0].message.content.strip(), voice_id
     
     except Exception as e:
         print(f"❌ OpenAI API错误: {e}")
-        return None
+        return None, None
 
 def main(json_filename=None):
     """Main function - 支持自动文件名"""
@@ -121,7 +126,11 @@ def main(json_filename=None):
     print("🤖 正在调用OpenAI API生成御姐风格的分析...")
     
     # Convert to Chinese mature tone
-    chinese_analysis = convert_to_chinese_mature_tone(match_data)
+    result = convert_to_chinese_mature_tone(match_data)
+    if result and result[0]:
+        chinese_analysis = result[0]
+    else:
+        chinese_analysis = None
     
     if chinese_analysis:
         print("\n" + "=" * 50)

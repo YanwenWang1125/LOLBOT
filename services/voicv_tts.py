@@ -7,10 +7,6 @@ import os
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from services.utils import ensure_directory, get_audio_filename
 
 # Load environment variables
 load_dotenv()
@@ -20,13 +16,14 @@ VOICV_API_KEY = os.getenv("VOICV_API_KEY")
 VOICV_VOICE_ID = os.getenv("VOICV_VOICE_ID")
 
 
-def generate_tts_audio(text: str, output_path: str = None) -> str:
+def generate_tts_audio(text: str, output_path: str = None, voice_id: str = None) -> str:
     """
     使用VoicV TTS API生成音频文件
     
     Args:
         text: 要转换的文本
         output_path: 输出文件路径，如果为None则自动生成
+        voice_id: 语音ID，如果为None则使用环境变量中的VOICV_VOICE_ID
         
     Returns:
         生成的音频文件路径，失败返回None
@@ -35,16 +32,24 @@ def generate_tts_audio(text: str, output_path: str = None) -> str:
     if not VOICV_API_KEY:
         print("[ERROR] 缺少环境变量 VOICV_API_KEY")
         return None
-    if not VOICV_VOICE_ID:
-        print("[ERROR] 缺少环境变量 VOICV_VOICE_ID")
-        return None
+    
+    # 使用传入的voice_id或默认的VOICV_VOICE_ID
+    if voice_id is None:
+        voice_id = VOICV_VOICE_ID
+        if not voice_id:
+            print("[ERROR] 缺少环境变量 VOICV_VOICE_ID")
+            return None
     
     # 生成输出路径
     if not output_path:
-        output_path = get_audio_filename()
+        # 确保audio目录存在
+        os.makedirs("audio", exist_ok=True)
+        # 生成时间戳
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_path = f"audio/match_analysis_{timestamp}.mp3"
     
     headers = {"x-api-key": VOICV_API_KEY, "Content-Type": "application/json"}
-    payload = {"voiceId": VOICV_VOICE_ID, "text": text, "format": "mp3"}
+    payload = {"voiceId": voice_id, "text": text, "format": "mp3"}
     
     try:
         print("-> 调用 voicV TTS API...")
@@ -66,7 +71,7 @@ def generate_tts_audio(text: str, output_path: str = None) -> str:
         mp3_response.raise_for_status()
         
         # 确保目录存在
-        ensure_directory(os.path.dirname(output_path))
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         
         # 保存文件
         with open(output_path, "wb") as f:

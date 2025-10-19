@@ -5,8 +5,9 @@
 
 import os
 import json
+import glob
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 
 def find_latest_json_file(analysis_dir: str = "analysis") -> Optional[str]:
@@ -132,3 +133,80 @@ def get_analysis_filename(timestamp: str = None) -> str:
     
     ensure_directory("analysis")
     return f"analysis/match_analysis_{timestamp}.json"
+
+
+def cleanup_old_files(keep_count: int = 5) -> Dict[str, int]:
+    """
+    清理旧文件，只保留最近的指定数量
+    
+    Args:
+        keep_count: 保留的文件数量，默认5个
+        
+    Returns:
+        清理统计信息 {'analysis': 删除数量, 'audio': 删除数量}
+    """
+    cleanup_stats = {'analysis': 0, 'audio': 0}
+    
+    # 清理analysis目录
+    analysis_files = glob.glob("analysis/match_analysis_*.json")
+    if len(analysis_files) > keep_count:
+        # 按修改时间排序，保留最新的
+        analysis_files.sort(key=os.path.getmtime, reverse=True)
+        files_to_delete = analysis_files[keep_count:]
+        
+        for file_path in files_to_delete:
+            try:
+                os.remove(file_path)
+                cleanup_stats['analysis'] += 1
+                print(f"🗑️ 删除旧分析文件: {file_path}")
+            except Exception as e:
+                print(f"❌ 删除文件失败 {file_path}: {e}")
+    
+    # 清理audio目录
+    audio_files = glob.glob("audio/match_analysis_*.mp3")
+    if len(audio_files) > keep_count:
+        # 按修改时间排序，保留最新的
+        audio_files.sort(key=os.path.getmtime, reverse=True)
+        files_to_delete = audio_files[keep_count:]
+        
+        for file_path in files_to_delete:
+            try:
+                os.remove(file_path)
+                cleanup_stats['audio'] += 1
+                print(f"🗑️ 删除旧音频文件: {file_path}")
+            except Exception as e:
+                print(f"❌ 删除文件失败 {file_path}: {e}")
+    
+    # 清理中文分析文件
+    chinese_files = glob.glob("analysis/chinese_analysis_*.txt")
+    if len(chinese_files) > keep_count:
+        chinese_files.sort(key=os.path.getmtime, reverse=True)
+        files_to_delete = chinese_files[keep_count:]
+        
+        for file_path in files_to_delete:
+            try:
+                os.remove(file_path)
+                cleanup_stats['analysis'] += 1
+                print(f"🗑️ 删除旧中文分析文件: {file_path}")
+            except Exception as e:
+                print(f"❌ 删除文件失败 {file_path}: {e}")
+    
+    return cleanup_stats
+
+
+def get_file_count_info() -> Dict[str, int]:
+    """
+    获取各目录文件数量信息
+    
+    Returns:
+        文件数量统计 {'analysis': 数量, 'audio': 数量, 'chinese_analysis': 数量}
+    """
+    analysis_count = len(glob.glob("analysis/match_analysis_*.json"))
+    audio_count = len(glob.glob("audio/match_analysis_*.mp3"))
+    chinese_count = len(glob.glob("analysis/chinese_analysis_*.txt"))
+    
+    return {
+        'analysis': analysis_count,
+        'audio': audio_count,
+        'chinese_analysis': chinese_count
+    }

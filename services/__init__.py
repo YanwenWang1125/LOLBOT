@@ -10,7 +10,9 @@ from .utils import (
     generate_timestamp,
     ensure_directory,
     get_audio_filename,
-    get_analysis_filename
+    get_analysis_filename,
+    cleanup_old_files,
+    get_file_count_info
 )
 
 from .voicv_tts import generate_tts_audio
@@ -24,6 +26,8 @@ __all__ = [
     'ensure_directory',
     'get_audio_filename',
     'get_analysis_filename',
+    'cleanup_old_files',
+    'get_file_count_info',
     'generate_tts_audio',
     'get_match_data'
 ]
