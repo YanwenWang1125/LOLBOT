@@ -1,6 +1,7 @@
 import requests
+import os
 
-RIOT_API_KEY = "RGAPI-0b0485ed-73ab-44e0-815e-da348fd3dd6e"
+RIOT_API_KEY = os.getenv("RIOT_API_KEY")
 SUMMONER_NAME = "Loveù"
 TAG_LINE = "NA1"
 REGION = "na1"
