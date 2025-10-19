@@ -20,7 +20,7 @@ project-root/
 │  └─ discord_bot.py          # 主入口（步骤4）
 ├─ services/
 │  ├─ riot_checker.py         # 步骤1：获取并保存对局 JSON
-│  ├─ json_to_chinese_lu.py   # 步骤2：调用 OpenAI → 中文分析
+│  ├─ match_analyzer.py       # 步骤2：调用 OpenAI → 中文分析
 │  ├─ voicv_tts.py            # 步骤3：VoicV TTS 合成
 │  └─ utils.py                # 公共工具函数
 ├─ .env                       # 环境变量配置

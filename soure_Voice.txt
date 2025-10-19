@@ -1,28 +1,7 @@
-dp_voice_id=cdf5f2a7604849e2a5ccd07ccf628ee6
-
-返回： {
-  "code": 200,
-  "message": "success",
-  "data": {
-    "voiceId": "cdf5f2a7604849e2a5ccd07ccf628ee6",
-    "costCredits": 1000
-  }
-}
-✅ 克隆完成，voiceId = cdf5f2a7604849e2a5ccd07ccf628ee6
-
+dp_voice_id = cdf5f2a7604849e2a5ccd07ccf628ee6
 
 kfk_voice_id = 297a903ffa674f1fb805ac3c9c7f7aa5
 
-
 nova_voice_id = b5fe37182e63465486a09fb429fa78f2
 
-(base) C:\Users\Leo\AI projects\LOLBOT>python services/voicV_clone.py
-返回： {
-  "code": 200,
-  "message": "success",
-  "data": {
-    "voiceId": "b5fe37182e63465486a09fb429fa78f2",
-    "costCredits": 1000
-  }
-}
-✅ 克隆完成，voiceId = b5fe37182e63465486a09fb429fa78f2
+老太_voice_id = 1b0238b2782e43daa7e3d1625df32257

@@ -18,7 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
 
 # 导入服务模块
 from services.riot_checker import main as get_match_data
-from services.json_to_chinese_lu import convert_to_chinese_mature_tone, load_json_file
+from services.match_analyzer import convert_to_chinese_mature_tone, load_json_file
 from services.voicv_tts import generate_tts_audio
 from services.utils import find_latest_json_file, ensure_directory
 
@@ -72,8 +72,14 @@ class LOLWorkflow:
                 await self.ctx.send(f"❌ **步骤1失败**: 获取游戏数据失败 - {e}")
             return False
     
-    async def step2_convert_to_chinese(self):
-        """步骤2: 转换为中文分析"""
+    async def step2_convert_to_chinese(self, prompt=None, system_role=None, style="default"):
+        """步骤2: 转换为中文分析
+        
+        Args:
+            prompt (str, optional): 自定义提示词，如果为None则使用风格提示词
+            system_role (str, optional): 自定义系统角色，如果为None则使用风格角色
+            style (str, optional): 风格名称 (default, professional, humorous)
+        """
         print("步骤2: 生成中文分析...")
         if self.ctx:
             await self.ctx.send("🤖 **步骤2**: 正在生成AI中文分析...")
@@ -88,7 +94,7 @@ class LOLWorkflow:
                 raise ValueError("无法加载游戏数据")
             
             # 转换为中文分析
-            self.chinese_analysis = convert_to_chinese_mature_tone(match_data)
+            self.chinese_analysis = convert_to_chinese_mature_tone(match_data, prompt, system_role, style)
             if not self.chinese_analysis:
                 raise ValueError("AI分析生成失败")
             
@@ -186,8 +192,15 @@ class LOLWorkflow:
                 await self.ctx.send(f"❌ **步骤4失败**: Discord播放失败 - {e}")
             return False
     
-    async def run_full_workflow(self, voice_channel_id=None):
-        """运行完整工作流程"""
+    async def run_full_workflow(self, voice_channel_id=None, prompt=None, system_role=None, style="default"):
+        """运行完整工作流程
+        
+        Args:
+            voice_channel_id (int, optional): Discord语音频道ID
+            prompt (str, optional): 自定义提示词
+            system_role (str, optional): 自定义系统角色
+            style (str, optional): 风格名称 (default, professional, humorous)
+        """
         print("开始英雄联盟游戏分析完整流程")
         print("=" * 60)
         
@@ -196,7 +209,7 @@ class LOLWorkflow:
             return False
         
         # 步骤2: 转换为中文分析
-        if not await self.step2_convert_to_chinese():
+        if not await self.step2_convert_to_chinese(prompt, system_role, style):
             return False
         
         # 步骤3: 生成TTS音频
@@ -214,22 +227,21 @@ class LOLWorkflow:
 
 # Discord Bot 命令
 @bot.command(name="lol")
-async def lol_analysis(ctx, voice_channel_id: int = None):
+async def lol_analysis(ctx):
     """
     运行完整的LOL游戏分析流程
-    用法: !lol [语音频道ID]
+    用法: !lol
+    注意: 需要先加入语音频道
     """
     try:
         workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
         
-        # 如果没有指定语音频道，尝试使用用户当前频道
-        if not voice_channel_id:
-            if ctx.author.voice and ctx.author.voice.channel:
-                voice_channel_id = ctx.author.voice.channel.id
-            else:
-                await ctx.reply("❌ 请先加入语音频道或指定语音频道ID")
-                return
+        # 检查用户是否在语音频道中
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            await ctx.reply("❌ 请先加入语音频道再使用此命令")
+            return
         
+        voice_channel_id = ctx.author.voice.channel.id
         await ctx.reply("🎮 **开始分析你的最新游戏...**")
         
         # 运行完整流程
@@ -268,13 +280,93 @@ async def test_workflow(ctx):
         await ctx.reply(f"❌ **测试失败**: {e}")
 
 
+@bot.command(name="lol_custom")
+async def lol_custom_analysis(ctx, *, custom_prompt: str = None):
+    """
+    运行自定义LOL游戏分析流程
+    用法: !lol_custom [自定义提示词]
+    示例: !lol_custom "请生成一个专业的游戏分析"
+    注意: 需要先加入语音频道
+    """
+    try:
+        workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
+        
+        # 检查用户是否在语音频道中
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            await ctx.reply("❌ 请先加入语音频道再使用此命令")
+            return
+        
+        voice_channel_id = ctx.author.voice.channel.id
+        await ctx.reply("🎮 **开始自定义分析你的最新游戏...**")
+        
+        # 运行完整流程，传入自定义参数
+        success = await workflow.run_full_workflow(voice_channel_id, custom_prompt)
+        
+        if success:
+            await ctx.reply("🎉 **自定义分析完成！** 游戏分析完成，音频已播放完毕。")
+        else:
+            await ctx.reply("❌ **自定义分析失败**，请检查配置。")
+            
+    except Exception as e:
+        await ctx.reply(f"❌ **执行失败**: {e}")
+
+
+@bot.command(name="lol_style")
+async def lol_style_analysis(ctx, style: str = "default"):
+    """
+    运行指定风格的LOL游戏分析流程
+    用法: !lol_style [风格名称]
+    可用风格: default(搞子), professional(专业), humorous(幽默)
+    示例: !lol_style professional
+    注意: 需要先加入语音频道
+    """
+    try:
+        # 验证风格名称
+        valid_styles = ["default", "professional", "humorous"]
+        if style not in valid_styles:
+            await ctx.reply(f"❌ 无效的风格名称。可用风格: {', '.join(valid_styles)}")
+            return
+        
+        workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
+        
+        # 检查用户是否在语音频道中
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            await ctx.reply("❌ 请先加入语音频道再使用此命令")
+            return
+        
+        voice_channel_id = ctx.author.voice.channel.id
+        
+        style_names = {
+            "default": "搞子风格",
+            "professional": "专业风格", 
+            "humorous": "幽默风格"
+        }
+        
+        await ctx.reply(f"🎮 **开始{style_names[style]}分析你的最新游戏...**")
+        
+        # 运行完整流程，传入风格参数
+        success = await workflow.run_full_workflow(voice_channel_id, style=style)
+        
+        if success:
+            await ctx.reply(f"🎉 **{style_names[style]}分析完成！** 游戏分析完成，音频已播放完毕。")
+        else:
+            await ctx.reply("❌ **风格分析失败**，请检查配置。")
+            
+    except Exception as e:
+        await ctx.reply(f"❌ **执行失败**: {e}")
+
+
 @bot.event
 async def on_ready():
     print(f"✅ Discord Bot已登录: {bot.user}")
     print("🎮 LOL工作流程机器人已就绪!")
     print("可用命令:")
-    print("  !lol [语音频道ID] - 运行完整分析流程")
+    print("  !lol - 运行完整分析流程（默认搞子风格）")
+    print("  !lol_style [风格] - 运行指定风格分析流程")
+    print("  !lol_custom [自定义提示词] - 运行自定义分析流程")
     print("  !test - 测试工作流程（不播放音频）")
+    print("  可用风格: default(搞子), professional(专业), humorous(幽默)")
+    print("  注意: 使用前请先加入语音频道")
 
 
 def main():

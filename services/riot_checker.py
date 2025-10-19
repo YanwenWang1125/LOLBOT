@@ -40,7 +40,7 @@ CHAMPION_NAME_MAPPING = {
     "Darius": "德莱文",
     "Diana": "黛安娜",
     "Draven": "德莱文",
-    "Dr. Mundo": "蒙多医生",
+    "DrMundo": "蒙多医生",
     "Ekko": "艾克",
     "Elise": "伊莉丝",
     "Evelynn": "伊芙琳",
