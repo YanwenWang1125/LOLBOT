@@ -11,6 +11,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 import discord
 from discord.ext import commands
+import ffmpeg
 
 # 添加services目录到Python路径
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
@@ -29,7 +30,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 VOICV_API_KEY = os.getenv("VOICV_API_KEY")
 VOICV_VOICE_ID = os.getenv("VOICV_VOICE_ID")
-FFMPEG_PATH = r"C:\Users\Leo\Text_to_Speech\ffmpeg-8.0-essentials_build\bin\ffmpeg.exe"
+# FFMPEG_PATH removed - now using ffmpeg-python
 
 # 初始化Discord Bot
 intents = discord.Intents.default()
@@ -155,8 +156,8 @@ class LOLWorkflow:
             
             vc = await voice_channel.connect()
             
-            # 播放音频
-            audio_source = discord.FFmpegPCMAudio(self.audio_file, executable=FFMPEG_PATH)
+            # 播放音频 - 使用ffmpeg-python自动查找ffmpeg
+            audio_source = discord.FFmpegPCMAudio(self.audio_file)
             done = asyncio.Event()
             
             def after_play(err):

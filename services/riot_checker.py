@@ -307,7 +307,7 @@ def analyze_match_data(match_data, summoner_info):
         lvp_name = lvp.get('summonerName', '') or lvp.get('riotIdGameName', '')
         
         # 调试信息
-        print(f"[DEBUG] 玩家信息字段: {list(player_info.keys())}")
+        # print(f"[DEBUG] 玩家信息字段: {list(player_info.keys())}")
         print(f"[DEBUG] 玩家名字: summonerName='{player_info.get('summonerName', '')}', riotIdGameName='{player_info.get('riotIdGameName', '')}'")
         print(f"[DEBUG] 召唤师信息: {summoner_info}")
         

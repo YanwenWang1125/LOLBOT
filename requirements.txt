@@ -4,3 +4,4 @@ openai>=1.0.0
 gradio_client>=0.0.1
 gtts>=2.3.0
 discord.py>=2.3.0
+ffmpeg-python>=0.2.0

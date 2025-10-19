@@ -85,7 +85,7 @@ python main.py
 
 ### 步骤4: Discord播放 🔊
 - 连接Discord语音频道
-- 使用FFmpeg播放生成的音频
+- 使用ffmpeg-python自动查找FFmpeg播放生成的音频
 - 播放完成后自动断开连接
 
 ## 🤖 Discord Bot 命令
@@ -98,7 +98,7 @@ python main.py
 - **数据获取**: Riot Games API
 - **AI分析**: OpenAI GPT-4
 - **语音合成**: VoicV TTS API
-- **语音播放**: Discord.py + FFmpeg
+- **语音播放**: Discord.py + ffmpeg-python
 - **数据存储**: JSON文件 + 音频文件
 
 ## 📋 环境变量说明
@@ -155,7 +155,7 @@ python main.py
 1. **API密钥错误**: 检查 `.env` 文件中的API密钥是否正确
 2. **网络连接问题**: 确保网络连接正常，API服务可用
 3. **Discord权限**: 确保Bot有语音频道权限
-4. **FFmpeg路径**: 检查FFmpeg路径是否正确配置
+4. **FFmpeg安装**: 确保系统已安装FFmpeg，ffmpeg-python会自动查找
 
 ### 调试模式
 
