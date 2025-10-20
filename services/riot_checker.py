@@ -196,11 +196,18 @@ def get_chinese_champion_name(english_name):
     return CHAMPION_NAME_MAPPING.get(english_name, english_name)
 
 
-def get_summoner_info():
+def get_summoner_info(game_name=None, tag_line=None):
     """获取召唤师信息"""
     try:
+        # 使用传入的参数或环境变量
+        target_game_name = game_name or GAME_NAME
+        target_tag_line = tag_line or TAG_LINE
+        
+        if not target_game_name or not target_tag_line:
+            raise ValueError("游戏用户名和标签不能为空")
+        
         # 获取账户信息
-        account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{GAME_NAME}/{TAG_LINE}"
+        account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{target_game_name}/{target_tag_line}"
         account_response = requests.get(account_url, headers=HEADERS, timeout=10)
         account_response.raise_for_status()
         account_data = account_response.json()
@@ -224,7 +231,6 @@ def get_summoner_info():
         print(f"[ERROR] 获取召唤师信息失败: {e}")
         return None
     except KeyError as e:
-        print(f"[ERROR] 召唤师数据缺少字段: {e}")
         print(f"[DEBUG] 召唤师数据: {summoner_data}")
         return None
     except Exception as e:
@@ -361,8 +367,83 @@ def analyze_match_data(match_data, summoner_info):
         return None
 
 
+def get_match_data_for_user(game_name, tag_line):
+    """为指定用户获取游戏数据"""
+    print("英雄联盟游戏数据获取器（动态用户）")
+    print("=" * 50)
+    
+    # 检查环境变量
+    if not RIOT_API_KEY:
+        print("错误: 请在.env文件中设置RIOT_API_KEY")
+        return False
+    
+    if not game_name or not tag_line:
+        print("错误: 用户名和标签不能为空")
+        return False
+    
+    try:
+        print(f"正在获取玩家信息: {game_name}#{tag_line}")
+        
+        # 获取召唤师信息
+        summoner_info = get_summoner_info(game_name, tag_line)
+        if not summoner_info:
+            print("获取召唤师信息失败")
+            return False
+        
+        print(f"召唤师信息获取成功: {summoner_info['summoner_name']} (等级 {summoner_info['summoner_level']})")
+        
+        # 获取最近的比赛
+        print("正在获取最近的比赛...")
+        recent_matches = get_recent_matches(summoner_info['puuid'], 1)
+        if not recent_matches:
+            print("未找到最近的比赛")
+            return False
+        
+        match_id = recent_matches[0]
+        print(f"找到最近比赛: {match_id}")
+        
+        # 获取比赛详情
+        print("正在获取比赛详情...")
+        match_data = get_match_details(match_id)
+        if not match_data:
+            print("获取比赛详情失败")
+            return False
+        
+        print("比赛详情获取成功")
+        
+        # 分析比赛数据
+        print("正在分析比赛数据...")
+        analysis = analyze_match_data(match_data, summoner_info)
+        if not analysis:
+            print("分析比赛数据失败")
+            return False
+        
+        print("比赛数据分析完成")
+        
+        # 保存分析结果
+        # 确保保存到根目录的analysis文件夹
+        import os
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        analysis_dir = os.path.join(root_dir, "analysis")
+        ensure_directory(analysis_dir)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        output_file = os.path.join(analysis_dir, f"match_analysis_{timestamp}.json")
+        
+        if save_json_file(analysis, output_file):
+            print(f"分析结果已保存: {output_file}")
+            return True
+        else:
+            print("保存分析结果失败")
+            return False
+            
+    except Exception as e:
+        print(f"执行失败: {e}")
+        return False
+
+
 def main():
-    """主函数 - 获取并保存游戏数据"""
+    """主函数 - 获取并保存游戏数据（使用环境变量）"""
     print("英雄联盟游戏数据获取器")
     print("=" * 50)
     

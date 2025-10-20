@@ -73,6 +73,38 @@ class LOLWorkflow:
                 await self.ctx.send(f"❌ **步骤1失败**: 获取游戏数据失败 - {e}")
             return False
     
+    async def step1_get_match_data_with_user(self, game_name, tag_line):
+        """步骤1: 获取指定用户的游戏数据"""
+        print(f"步骤1: 获取用户 {game_name}#{tag_line} 的最新游戏数据...")
+        if self.ctx:
+            await self.ctx.send(f"🔍 **步骤1**: 正在获取 {game_name}#{tag_line} 的最新游戏数据...")
+        
+        try:
+            # 导入动态用户数据获取函数
+            from services.riot_checker import get_match_data_for_user
+            
+            # 运行riot_checker获取指定用户的数据
+            success = get_match_data_for_user(game_name, tag_line)
+            if not success:
+                raise Exception("获取用户游戏数据失败")
+            
+            # 找到最新生成的JSON文件
+            self.current_match_file = find_latest_json_file("analysis")
+            if not self.current_match_file:
+                raise FileNotFoundError("未找到游戏数据文件")
+            
+            print(f"用户 {game_name}#{tag_line} 的游戏数据已保存: {self.current_match_file}")
+            
+            if self.ctx:
+                await self.ctx.send("✅ **步骤1完成**: 游戏数据获取成功！")
+            return True
+            
+        except Exception as e:
+            print(f"获取用户游戏数据失败: {e}")
+            if self.ctx:
+                await self.ctx.send(f"❌ **步骤1失败**: 获取游戏数据失败 - {e}")
+            return False
+    
     async def step2_convert_to_chinese(self, prompt=None, system_role=None, style="default"):
         """步骤2: 转换为中文分析
         
@@ -210,6 +242,46 @@ class LOLWorkflow:
         
         # 步骤1: 获取游戏数据
         if not await self.step1_get_match_data():
+            return False
+        
+        # 步骤2: 转换为中文分析
+        if not await self.step2_convert_to_chinese(prompt, system_role, style):
+            return False
+        
+        # 步骤3: 生成TTS音频
+        if not await self.step3_generate_tts():
+            return False
+        
+        # 步骤4: Discord播放
+        if voice_channel_id:
+            if not await self.step4_discord_play(voice_channel_id):
+                return False
+        
+        # 步骤5: 清理旧文件（只保留最近5次记录）
+        print("🧹 清理旧文件...")
+        cleanup_stats = cleanup_old_files(keep_count=5)
+        if cleanup_stats['analysis'] > 0 or cleanup_stats['audio'] > 0:
+            print(f"✅ 清理完成: 删除了 {cleanup_stats['analysis']} 个分析文件, {cleanup_stats['audio']} 个音频文件")
+        
+        print("🎉 完整流程执行成功!")
+        return True
+    
+    async def run_full_workflow_with_user(self, voice_channel_id=None, game_name=None, tag_line=None, prompt=None, system_role=None, style="default"):
+        """运行完整工作流程（支持动态用户）
+        
+        Args:
+            voice_channel_id (int, optional): Discord语音频道ID
+            game_name (str, optional): 游戏用户名
+            tag_line (str, optional): 用户标签
+            prompt (str, optional): 自定义提示词
+            system_role (str, optional): 自定义系统角色
+            style (str, optional): 风格名称 (default, professional, humorous)
+        """
+        print("开始英雄联盟游戏分析完整流程（动态用户）")
+        print("=" * 60)
+        
+        # 步骤1: 获取游戏数据（使用动态用户）
+        if not await self.step1_get_match_data_with_user(game_name, tag_line):
             return False
         
         # 步骤2: 转换为中文分析
@@ -381,6 +453,59 @@ async def lol_style_analysis(ctx, style: str = "default"):
         await ctx.reply(f"❌ **执行失败**: {e}")
 
 
+@bot.command(name="lolcheck")
+async def lolcheck_analysis(ctx, *, username_tag: str = None):
+    """
+    检查指定用户的最新游戏数据
+    用法: !lolcheck username#tag [风格名称]
+    示例: !lolcheck Faker#KR1 professional
+    注意: 需要先加入语音频道
+    """
+    try:
+        if not username_tag:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!lolcheck username#tag`")
+            return
+        
+        # 解析用户名和标签
+        if '#' not in username_tag:
+            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
+            return
+        
+        parts = username_tag.split('#', 1)
+        if len(parts) != 2:
+            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
+            return
+        
+        game_name, tag_line = parts[0].strip(), parts[1].strip()
+        
+        if not game_name or not tag_line:
+            await ctx.reply("❌ 用户名和标签不能为空")
+            return
+        
+        # 检查用户是否在语音频道中
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            await ctx.reply("❌ 请先加入语音频道再使用此命令")
+            return
+        
+        voice_channel_id = ctx.author.voice.channel.id
+        
+        await ctx.reply(f"🎮 **开始分析 {game_name}#{tag_line} 的最新游戏...**")
+        
+        # 创建支持动态用户的工作流程
+        workflow = LOLWorkflow(ctx=ctx)
+        
+        # 运行完整流程，传入动态用户参数
+        success = await workflow.run_full_workflow_with_user(voice_channel_id, game_name, tag_line)
+        
+        if success:
+            await ctx.reply(f"🎉 **{game_name}#{tag_line} 的分析完成！** 游戏分析完成，音频已播放完毕。")
+        else:
+            await ctx.reply("❌ **游戏分析失败**，请检查用户名和标签是否正确。")
+            
+    except Exception as e:
+        await ctx.reply(f"❌ **执行失败**: {e}")
+
+
 @bot.command(name="files")
 async def show_file_stats(ctx):
     """
@@ -410,10 +535,12 @@ async def on_ready():
     print("  !lol [风格] - 运行完整分析流程（默认搞子风格）")
     print("  !lol_style [风格] - 运行指定风格分析流程")
     print("  !lol_custom [自定义提示词] - 运行自定义分析流程")
+    print("  !lolcheck username#tag - 检查指定用户的最新游戏数据")
     print("  !test - 测试工作流程（不播放音频）")
     print("  !files - 显示文件统计信息")
     print("  可用风格: default(搞子), professional(专业), humorous(幽默)")
     print("  示例: !lol professional 或 !lol_style professional")
+    print("  示例: !lolcheck Faker#KR1")
     print("  注意: 使用前请先加入语音频道")
     print("  文件管理: 自动保留最近5次记录，无需手动清理")
 
