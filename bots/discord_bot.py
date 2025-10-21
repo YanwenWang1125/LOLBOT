@@ -64,6 +64,17 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# 加载Presence Commands
+@bot.event
+async def on_ready():
+    """Bot启动时加载cogs"""
+    try:
+        from bots.commands_presence import PresenceCommands
+        await bot.add_cog(PresenceCommands(bot))
+        print("✅ Presence commands loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load presence commands: {e}")
+
 
 class LOLWorkflow:
     def __init__(self, ctx=None):

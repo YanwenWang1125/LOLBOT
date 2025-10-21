@@ -30,6 +30,11 @@ class Config:
     AUDIO_DIR = "audio"
     KEEP_FILES_COUNT = 5
     
+    # Presence管理配置
+    DISCORD_POLL_INTERVAL = int(os.getenv("DISCORD_POLL_INTERVAL", "300"))  # 状态检测间隔（秒）
+    RIOT_POLL_INTERVAL = int(os.getenv("RIOT_POLL_INTERVAL", "180"))      # 比赛检测间隔（秒）
+    PLAYER_LINKS_PATH = os.getenv("PLAYER_LINKS_PATH", "data/player_links.json")
+    
     # KDA评分配置
     KDA_KILL_WEIGHT = 1.0
     KDA_ASSIST_WEIGHT = 0.5
