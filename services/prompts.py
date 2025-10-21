@@ -60,6 +60,11 @@ class PromptManager:
         Returns:
             Dict[str, str]: 包含prompt, system_role和voice_id的配置字典
         """
+        # DEBUG: 打印正在使用的prompt - 放在最前面确保每次都会执行
+        print("=" * 80)
+        print(f"DEBUG - 正在使用风格: {style_name}")
+        print("=" * 80)
+        
         config = self._load_config()
         styles = config.get("styles", {})
         
@@ -75,6 +80,18 @@ class PromptManager:
             prompt_content = self._load_prompt_file(prompt_file)
         else:
             prompt_content = ""
+        
+        # 继续DEBUG信息
+        print(f"Prompt文件: {prompt_file}")
+        print(f"System Role: {style_config.get('system_role', 'N/A')}")
+        print(f"Voice ID: {style_config.get('voice_id', 'N/A')}")
+        print(f"Prompt内容长度: {len(prompt_content)} 字符")
+        print("-" * 80)
+        print("完整Prompt内容:")
+        print("-" * 80)
+        print(prompt_content)
+        print("-" * 80)
+        print("=" * 80)
             
         return {
             "prompt": prompt_content,

@@ -151,8 +151,10 @@ class LOLWorkflow:
             system_role (str, optional): 自定义系统角色，如果为None则使用风格角色
             style (str, optional): 风格名称 (default, professional, humorous)
         """
+        print(f"步骤2: 转换为中文分析...，prompt: {prompt}, system_role: {system_role}, style: {style}")
+
         if self.ctx:
-            await self.ctx.send(f"🤖 **步骤2**: 正在生成AI中文分析... (风格: {style})")
+            await self.ctx.send(f"**步骤2**: 正在生成AI中文分析... (风格: {style})")
         
         try:
             if not self.current_match_file:
@@ -169,6 +171,9 @@ class LOLWorkflow:
                 raise ValueError("AI分析生成失败")
             
             self.chinese_analysis, self.voice_id = result
+
+            print(f"[DEBUG] 本次使用的Prompt：{prompt}")
+            # print(prompt if prompt else f"(风格: {style}，使用风格内置prompt)")
             
             print("[OK] 中文分析生成成功")
             print(f"📝 分析内容: {self.chinese_analysis[:100]}...")
@@ -391,7 +396,7 @@ class VAWorkflow:
     async def step2_convert_to_chinese(self, prompt=None, system_role=None, style="default"):
         """步骤2: 转换为中文分析"""
         if self.ctx:
-            await self.ctx.send(f"🤖 **步骤2**: 正在生成AI中文分析... (风格: {style})")
+            await self.ctx.send(f"**步骤2**: 正在生成AI中文分析... (风格: {style})")
         
         try:
             if not self.current_match_file:
@@ -624,6 +629,11 @@ async def lol_analysis(ctx, *, args: str = None):
         await ctx.reply(f"🎮 **开始{style_names[style]}分析 {username}#{tag} 的最新游戏...**")
         
         # 运行完整流程，传入用户名、标签和风格参数
+        print("voice_channel_id:", voice_channel_id)
+        print("username:", username)
+        print("tag:", tag)
+        print("style:", style)
+
         success = await workflow.run_full_workflow_with_user(voice_channel_id, username, tag, style=style)
         
         if success:
@@ -728,111 +738,6 @@ async def lol_style_analysis(ctx, style: str = "default"):
             await ctx.reply(f"🎉 **{style_names[style]}分析完成！** 游戏分析完成，音频已播放完毕。")
         else:
             await ctx.reply("❌ **风格分析失败**，请检查配置。")
-            
-    except Exception as e:
-        await ctx.reply(f"❌ **执行失败**: {e}")
-
-
-@bot.command(name="lolcheck")
-async def lolcheck_analysis(ctx, *, args: str = None):
-    """
-    检查指定用户的最新游戏数据
-    用法: !lolcheck username#tag [风格名称]
-    示例: !lolcheck Faker#KR1 professional
-    注意: 需要先加入语音频道
-    """
-    try:
-        if not args:
-            await ctx.reply("❌ 请提供用户名和标签，格式: `!lolcheck username#tag [风格]`")
-            return
-        
-        # 解析参数：username#tag [style]
-        # 处理用户名和标签可能被空格分隔的情况
-        parts = args.split()
-        
-        if len(parts) < 1:
-            await ctx.reply("❌ 请提供用户名和标签，格式: `!lolcheck username#tag [风格]`")
-            return
-        
-        # 重新组合用户名和标签
-        username_tag = None
-        style = "default"
-        
-        # 导入 STYLE_CONFIGS 一次
-        from services.prompts import prompt_manager
-        
-        # 查找包含#的部分或组合用户名#标签
-        for i, part in enumerate(parts):
-            if '#' in part:
-                # 如果这个部分包含#，直接使用
-                username_tag = part
-                # 检查后面是否还有参数作为风格
-                if i + 1 < len(parts):
-                    potential_style = parts[i + 1]
-                    if potential_style in prompt_manager.get_available_styles():
-                        style = potential_style
-                break
-            elif i + 1 < len(parts) and parts[i + 1].startswith('#'):
-                # 如果当前部分没有#，但下一部分以#开头，组合它们
-                username_tag = part + parts[i + 1]
-                # 检查后面是否还有参数作为风格
-                if i + 2 < len(parts):
-                    potential_style = parts[i + 2]
-                    # 只有当它是有效的风格名称时才使用
-                    if potential_style in prompt_manager.get_available_styles():
-                        style = potential_style
-                    # 如果不是有效风格，保持默认值，忽略这个参数
-                break
-        
-        if not username_tag:
-            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
-            return
-        
-        # 解析用户名和标签
-        if '#' not in username_tag:
-            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
-            return
-        
-        username_parts = username_tag.split('#', 1)
-        if len(username_parts) != 2:
-            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
-            return
-        
-        game_name, tag_line = username_parts[0].strip(), username_parts[1].strip()
-        
-        if not game_name or not tag_line:
-            await ctx.reply("❌ 用户名和标签不能为空")
-            return
-        
-        # 验证风格名称
-        valid_styles = prompt_manager.get_available_styles()
-        if style not in valid_styles:
-            await ctx.reply(f"❌ 无效的风格名称 '{style}'。可用风格: {', '.join(valid_styles)}")
-            return
-        
-        # 检查用户是否在语音频道中
-        if not ctx.author.voice or not ctx.author.voice.channel:
-            await ctx.reply("❌ 请先加入语音频道再使用此命令")
-            return
-        
-        voice_channel_id = ctx.author.voice.channel.id
-        
-        # 风格名称映射 - 从 STYLE_CONFIGS 动态生成
-        # 动态获取风格名称映射
-        style_names = get_style_display_names()
-        
-        await ctx.reply(f"🎮 **开始{style_names[style]}分析 {game_name}#{tag_line} 的最新游戏...**")
-        
-        # 创建支持动态用户的工作流程
-        workflow = LOLWorkflow(ctx=ctx)
-        
-        # 运行完整流程，传入动态用户参数和风格
-        success = await workflow.run_full_workflow_with_user(voice_channel_id, game_name, tag_line, style=style)
-        
-        if success:
-            await ctx.reply(f"🎉 **{game_name}#{tag_line} 的{style_names[style]}分析完成！** 游戏分析完成，音频已播放完毕。")
-        else:
-            await ctx.reply("❌ **游戏分析失败**，请检查用户名和标签是否正确。")
             
     except Exception as e:
         await ctx.reply(f"❌ **执行失败**: {e}")
@@ -1001,7 +906,7 @@ def main():
     game_name = os.getenv("GAME_NAME", "exm233")
     tag_line = os.getenv("TAG_LINE", "233")
     
-    print(f"📝 默认用户: {game_name}#{tag_line} (可通过!lolcheck命令动态指定)")
+    print(f"📝 默认用户: {game_name}#{tag_line} (可通过!lol命令动态指定)")
     
     print("✅ 所有配置检查通过")
     print("🚀 启动Discord Bot...")
