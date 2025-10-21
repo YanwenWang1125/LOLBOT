@@ -155,7 +155,7 @@ class LOLWorkflow:
             system_role (str, optional): 自定义系统角色，如果为None则使用风格角色
             style (str, optional): 风格名称 (default, professional, humorous)
         """
-        print(f"步骤2: 转换为中文分析...，prompt: {prompt}, system_role: {system_role}, style: {style}")
+        print(f"步骤2: 转换为中文分析...，style: {style}")
 
         if self.ctx:
             await self.ctx.send(f"**步骤2**: 正在生成AI中文分析... (风格: {style})")
@@ -176,7 +176,6 @@ class LOLWorkflow:
             
             self.chinese_analysis, self.voice_id = result
 
-            print(f"[DEBUG] 本次使用的Prompt：{prompt}")
             # print(prompt if prompt else f"(风格: {style}，使用风格内置prompt)")
             
             print("[OK] 中文分析生成成功..")
@@ -377,6 +376,10 @@ class VAWorkflow:
             analysis_dir = os.path.join(root_dir, "analysis")
             ensure_directory(analysis_dir)
             
+            # 管理Valorant比赛文件，保持最多5个
+            from services.valorant_checker import manage_valorant_match_files
+            manage_valorant_match_files(analysis_dir)
+            
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             self.current_match_file = os.path.join(analysis_dir, f"valorant_last_match_{timestamp}.json")
             
@@ -399,6 +402,8 @@ class VAWorkflow:
     
     async def step2_convert_to_chinese(self, prompt=None, system_role=None, style="default"):
         """步骤2: 转换为中文分析"""
+
+        print(f"步骤2: 转换为中文分析...， style: {style}")
         if self.ctx:
             await self.ctx.send(f"**步骤2**: 正在生成AI中文分析... (风格: {style})")
         
@@ -880,6 +885,7 @@ async def on_ready():
     print("可用命令:")
     print("  !lol username#tag [风格] - 分析指定用户的LOL最新游戏数据")
     print("  !va username#tag [风格] - 分析指定用户的Valorant最新游戏数据")
+    print("  !vahistory - 查看Valorant比赛历史记录（最多5个）")
     print("  !test - 测试工作流程（不播放音频）")
     print("  !files - 显示文件统计信息")
     # 动态获取可用风格

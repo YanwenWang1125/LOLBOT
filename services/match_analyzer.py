@@ -48,28 +48,8 @@ def convert_to_chinese_mature_tone(match_data, prompt=None, system_role=None, st
     else:
         voice_id = None
     
-    # DEBUG: 输出正在使用的prompt信息
-    print("=" * 80)
-    print(f"MATCH_ANALYZER DEBUG - 正在使用风格: {style}")
-    print("=" * 80)
-    print(f"原始Prompt长度: {len(prompt) if prompt else 0} 字符")
-    print(f"System Role: {system_role}")
-    print(f"Voice ID: {voice_id}")
-    print("-" * 80)
-    print("原始Prompt内容:")
-    print("-" * 80)
-    print(prompt)
-    print("-" * 80)
-    
     # Format the prompt with match data
     formatted_prompt = prompt_manager.format_prompt(prompt, match_data)
-    
-    # DEBUG: 输出格式化后的prompt
-    print("格式化后的Prompt内容:")
-    print("-" * 80)
-    print(formatted_prompt)
-    print("-" * 80)
-    print("=" * 80)
 
     try:
         response = client.chat.completions.create(

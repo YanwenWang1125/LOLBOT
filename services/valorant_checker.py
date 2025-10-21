@@ -182,10 +182,13 @@ def get_last_valorant_match(game_name=None, tag_line=None):
         
         # 显示简化的比赛信息
         
-        # 保存结果
+        # 保存结果到analysis目录，并管理最多5个文件
         root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         analysis_dir = os.path.join(root_dir, "analysis")
         ensure_directory(analysis_dir)
+        
+        # 管理Valorant比赛文件，保持最多5个
+        manage_valorant_match_files(analysis_dir)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_file = os.path.join(analysis_dir, f"valorant_last_match_{timestamp}.json")
@@ -198,6 +201,38 @@ def get_last_valorant_match(game_name=None, tag_line=None):
     except Exception as e:
         print(f"[ERROR] 执行失败: {e}")
         return None
+
+
+def manage_valorant_match_files(analysis_dir, max_files=5):
+    """
+    管理Valorant比赛文件，保持最多指定数量的文件
+    
+    Args:
+        analysis_dir (str): analysis目录路径
+        max_files (int): 最大文件数量，默认5个
+    """
+    try:
+        import glob
+        import os
+        
+        # 查找所有valorant_last_match_*.json文件
+        pattern = os.path.join(analysis_dir, "valorant_last_match_*.json")
+        valorant_files = glob.glob(pattern)
+        
+        # 按修改时间排序（最新的在前）
+        valorant_files.sort(key=os.path.getmtime, reverse=True)
+        
+        # 如果文件数量超过限制，删除最旧的文件
+        if len(valorant_files) >= max_files:
+            files_to_delete = valorant_files[max_files-1:]  # 保留最新的max_files-1个，删除其余的
+            for file_path in files_to_delete:
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"[WARNING] 删除文件失败 {file_path}: {e}")
+        
+    except Exception as e:
+        print(f"[ERROR] 管理Valorant比赛文件时发生错误: {e}")
 
 
 def test_api_connection():

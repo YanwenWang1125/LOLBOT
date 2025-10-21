@@ -58,18 +58,6 @@ def convert_to_chinese_mature_tone(match_data, prompt=None, system_role=None, st
     else:
         voice_id = None
     
-    # DEBUG: 输出正在使用的prompt信息
-    print("=" * 80)
-    print(f"🔍 VA_MATCH_ANALYZER DEBUG - 正在使用风格: {style}")
-    print("=" * 80)
-    print(f"📝 原始Prompt长度: {len(prompt) if prompt else 0} 字符")
-    print(f"🎭 System Role: {system_role}")
-    print(f"🎵 Voice ID: {voice_id}")
-    print("-" * 80)
-    print("📄 原始Prompt内容:")
-    print("-" * 80)
-    print(prompt)
-    print("-" * 80)
     
     # For Valorant, use custom prompt formatting
     if prompt is None:
