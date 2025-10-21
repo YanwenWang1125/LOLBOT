@@ -19,6 +19,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'services'))
 # 导入服务模块
 from services.riot_checker import main as get_match_data
 from services.match_analyzer import convert_to_chinese_mature_tone, load_json_file
+from services.va_match_analyzer import convert_to_chinese_mature_tone as va_convert_to_chinese_mature_tone, load_json_file as va_load_json_file
+from services.valorant_checker import get_last_valorant_match
 from services.voicv_tts import generate_tts_audio
 from services.utils import find_latest_json_file, ensure_directory, cleanup_old_files, get_file_count_info
 
@@ -27,21 +29,23 @@ load_dotenv()
 
 def get_style_display_names():
     """动态生成风格显示名称映射"""
-    from services.prompts import STYLE_CONFIGS
+    from services.prompts import prompt_manager
     
     # 基础映射
     base_mapping = {
-        "default": "搞子风格",
-        "kfk_dp": "专业风格", 
-        "kfk": "专业风格",
-        "azi": "Azi风格",
+        "default": "DP风格",
+        "kfk_dp": "lol+卡芙卡+DP风格", 
+        "kfk": "纯LOL+卡芙卡风格",
+        "azi": "啊梓风格",
         "dingzhen": "丁震风格",
-        "taffy": "Taffy风格"
+        "taffy": "LOL+Taffy风格",
+        "va_kfk_dp": "Valorant+卡芙卡+DP风格",
+        "va_kfk": "纯Valorant+卡芙卡风格"
     }
     
     # 为所有 STYLE_CONFIGS 中的风格生成显示名称
     result = {}
-    for style_name in STYLE_CONFIGS.keys():
+    for style_name in prompt_manager.get_available_styles():
         if style_name in base_mapping:
             result[style_name] = base_mapping[style_name]
         else:
@@ -136,7 +140,6 @@ class LOLWorkflow:
             system_role (str, optional): 自定义系统角色，如果为None则使用风格角色
             style (str, optional): 风格名称 (default, professional, humorous)
         """
-        print(f"步骤2: 生成中文分析... (风格: {style})")
         if self.ctx:
             await self.ctx.send(f"🤖 **步骤2**: 正在生成AI中文分析... (风格: {style})")
         
@@ -150,7 +153,6 @@ class LOLWorkflow:
                 raise ValueError("无法加载游戏数据")
             
             # 转换为中文分析，获取分析文本和voice_id
-            print(f"DEBUG: 调用convert_to_chinese_mature_tone，风格: {style}")
             result = convert_to_chinese_mature_tone(match_data, prompt, system_role, style)
             if not result or result[0] is None:
                 raise ValueError("AI分析生成失败")
@@ -330,23 +332,271 @@ class LOLWorkflow:
         return True
 
 
+class VAWorkflow:
+    def __init__(self, ctx=None):
+        self.current_match_file = None
+        self.chinese_analysis = None
+        self.audio_file = None
+        self.voice_id = None  # 从风格配置中获取的voice_id
+        self.ctx = ctx  # Discord context for sending status updates
+        
+    async def step1_get_valorant_match_data(self, game_name, tag_line):
+        """步骤1: 获取Valorant游戏数据"""
+        print(f"步骤1: 获取Valorant用户 {game_name}#{tag_line} 的最新游戏数据...")
+        if self.ctx:
+            await self.ctx.send(f"🔍 **步骤1**: 正在获取 {game_name}#{tag_line} 的最新Valorant游戏数据...")
+        
+        try:
+            # 运行valorant_checker获取数据
+            match_info = get_last_valorant_match(game_name, tag_line)
+            if not match_info:
+                raise Exception("获取Valorant游戏数据失败")
+            
+            # 保存数据到文件
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            analysis_dir = os.path.join(root_dir, "analysis")
+            ensure_directory(analysis_dir)
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            self.current_match_file = os.path.join(analysis_dir, f"valorant_last_match_{timestamp}.json")
+            
+            # 保存到JSON文件
+            import json
+            with open(self.current_match_file, 'w', encoding='utf-8') as f:
+                json.dump(match_info, f, ensure_ascii=False, indent=2)
+            
+            print(f"Valorant游戏数据已保存: {self.current_match_file}")
+            
+            if self.ctx:
+                await self.ctx.send("✅ **步骤1完成**: Valorant游戏数据获取成功！")
+            return True
+            
+        except Exception as e:
+            print(f"获取Valorant游戏数据失败: {e}")
+            if self.ctx:
+                await self.ctx.send(f"❌ **步骤1失败**: 获取Valorant游戏数据失败 - {e}")
+            return False
+    
+    async def step2_convert_to_chinese(self, prompt=None, system_role=None, style="default"):
+        """步骤2: 转换为中文分析"""
+        if self.ctx:
+            await self.ctx.send(f"🤖 **步骤2**: 正在生成AI中文分析... (风格: {style})")
+        
+        try:
+            if not self.current_match_file:
+                raise ValueError("没有可用的Valorant游戏数据文件")
+            
+            # 加载JSON数据
+            match_data = va_load_json_file(self.current_match_file)
+            if not match_data:
+                raise ValueError("无法加载Valorant游戏数据")
+            
+            # 转换为中文分析，获取分析文本和voice_id
+            result = va_convert_to_chinese_mature_tone(match_data, prompt, system_role, style)
+            if not result or result[0] is None:
+                raise ValueError("AI分析生成失败")
+            
+            self.chinese_analysis, self.voice_id = result
+            
+            print("[OK] Valorant中文分析生成成功")
+            print(f"📝 分析内容: {self.chinese_analysis[:100]}...")
+            
+            if self.ctx:
+                await self.ctx.send("✅ **步骤2完成**: AI中文分析生成成功！")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Valorant中文分析生成失败: {e}")
+            if self.ctx:
+                await self.ctx.send(f"❌ **步骤2失败**: 中文分析生成失败 - {e}")
+            return False
+    
+    async def step3_generate_tts(self):
+        """步骤3: 生成TTS音频"""
+        print("步骤3: 生成语音文件...")
+        if self.ctx:
+            await self.ctx.send("🎵 **步骤3**: 正在生成语音文件...")
+        
+        try:
+            if not self.chinese_analysis:
+                raise ValueError("没有可用的中文分析内容")
+            
+            # 使用 voicV TTS API生成音频，传入voice_id
+            self.audio_file = generate_tts_audio(self.chinese_analysis, voice_id=self.voice_id)
+            if not self.audio_file:
+                raise ValueError("TTS生成失败")
+            
+            print(f"[OK] 语音文件生成成功: {self.audio_file}")
+            
+            if self.ctx:
+                await self.ctx.send("✅ **步骤3完成**: 语音文件生成成功！")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] TTS生成失败: {e}")
+            if self.ctx:
+                await self.ctx.send(f"❌ **步骤3失败**: TTS生成失败 - {e}")
+            return False
+    
+    async def step4_discord_play(self, voice_channel_id=None):
+        """步骤4: Discord播放音频"""
+        print("步骤4: Discord播放音频...")
+        if self.ctx:
+            await self.ctx.send("🔊 **步骤4**: 正在连接语音频道并播放音频...")
+        
+        try:
+            if not self.audio_file or not os.path.exists(self.audio_file):
+                raise ValueError("音频文件不存在")
+            
+            # 这里需要用户指定语音频道或从用户当前频道获取
+            if not voice_channel_id:
+                print("[ERROR] 需要指定语音频道ID")
+                if self.ctx:
+                    await self.ctx.send("❌ **步骤4失败**: 需要指定语音频道ID")
+                return False
+            
+            # 连接语音频道
+            voice_channel = bot.get_channel(voice_channel_id)
+            if not voice_channel:
+                raise ValueError("找不到指定的语音频道")
+            
+            vc = await voice_channel.connect()
+            
+            # 播放音频 - 使用ffmpeg-python自动查找ffmpeg
+            audio_source = discord.FFmpegPCMAudio(self.audio_file)
+            done = asyncio.Event()
+            
+            def after_play(err):
+                done.set()
+            
+            vc.play(audio_source, after=after_play)
+            print("🎵 正在播放Valorant游戏分析...")
+            
+            if self.ctx:
+                await self.ctx.send("🎵 **正在播放**: Valorant游戏分析音频...")
+            
+            await done.wait()
+            
+            # 播放完成后断开连接
+            await asyncio.sleep(1)
+            await vc.disconnect()
+            print("[OK] 播放完成，已退出语音频道")
+            
+            if self.ctx:
+                await self.ctx.send("✅ **步骤4完成**: 音频播放完成！")
+            return True
+            
+        except Exception as e:
+            print(f"[ERROR] Discord播放失败: {e}")
+            if self.ctx:
+                await self.ctx.send(f"❌ **步骤4失败**: Discord播放失败 - {e}")
+            return False
+    
+    async def run_full_workflow(self, voice_channel_id=None, game_name=None, tag_line=None, prompt=None, system_role=None, style="default"):
+        """运行完整Valorant工作流程
+        
+        Args:
+            voice_channel_id (int, optional): Discord语音频道ID
+            game_name (str, optional): 游戏用户名
+            tag_line (str, optional): 用户标签
+            prompt (str, optional): 自定义提示词
+            system_role (str, optional): 自定义系统角色
+            style (str, optional): 风格名称 (default, professional, humorous)
+        """
+        print("开始Valorant游戏分析完整流程")
+        print("=" * 60)
+        
+        # 步骤1: 获取Valorant游戏数据
+        if not await self.step1_get_valorant_match_data(game_name, tag_line):
+            return False
+        
+        # 步骤2: 转换为中文分析
+        if not await self.step2_convert_to_chinese(prompt, system_role, style):
+            return False
+        
+        # 步骤3: 生成TTS音频
+        if not await self.step3_generate_tts():
+            return False
+        
+        # 步骤4: Discord播放
+        if voice_channel_id:
+            if not await self.step4_discord_play(voice_channel_id):
+                return False
+        
+        # 步骤5: 清理旧文件（只保留最近5次记录）
+        print("🧹 清理旧文件...")
+        cleanup_stats = cleanup_old_files(keep_count=5)
+        if cleanup_stats['analysis'] > 0 or cleanup_stats['audio'] > 0:
+            print(f"✅ 清理完成: 删除了 {cleanup_stats['analysis']} 个分析文件, {cleanup_stats['audio']} 个音频文件")
+        
+        print("🎉 Valorant完整流程执行成功!")
+        return True
+
+
 # Discord Bot 命令
 @bot.command(name="lol")
-async def lol_analysis(ctx, style: str = "default"):
+async def lol_analysis(ctx, *, args: str = None):
     """
     运行完整的LOL游戏分析流程
-    用法: !lol [风格名称]
-    可用风格: 动态从STYLE_CONFIGS获取
-    示例: !lol professional
+    用法: !lol username#tag [风格名称]
+    示例: !lol Faker#KR1 professional
     注意: 需要先加入语音频道
     """
     try:
+        if not args:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!lol username#tag [风格]`")
+            return
+        
+        # 解析参数：username#tag [style]
+        parts = args.split()
+        
+        if len(parts) < 1:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!lol username#tag [风格]`")
+            return
+        
+        # 重新组合用户名和标签
+        username_tag = None
+        style = "default"
+        
+        # 导入风格配置
+        from services.prompts import prompt_manager
+        valid_styles = prompt_manager.get_available_styles()
+        
+        # 查找包含#的部分或组合用户名#标签
+        for i, part in enumerate(parts):
+            if '#' in part:
+                username_tag = part
+                # 检查后面是否有风格参数
+                if i + 1 < len(parts):
+                    potential_style = parts[i + 1]
+                    if potential_style in valid_styles:
+                        style = potential_style
+                break
+        
+        # 如果没有找到#，尝试组合前两个部分
+        if not username_tag and len(parts) >= 2:
+            username_tag = f"{parts[0]}#{parts[1]}"
+            # 检查第三个参数是否为风格
+            if len(parts) >= 3:
+                potential_style = parts[2]
+                if potential_style in valid_styles:
+                    style = potential_style
+        
+        if not username_tag:
+            await ctx.reply("❌ 请提供正确的用户名和标签格式，例如: `Faker#KR1`")
+            return
+        
         # 验证风格名称
-        from services.prompts import STYLE_CONFIGS
-        valid_styles = list(STYLE_CONFIGS.keys())
         if style not in valid_styles:
             await ctx.reply(f"❌ 无效的风格名称。可用风格: {', '.join(valid_styles)}")
             return
+        
+        # 解析用户名和标签
+        if '#' not in username_tag:
+            await ctx.reply("❌ 用户名格式错误，请使用: `username#tag`")
+            return
+        
+        username, tag = username_tag.split('#', 1)
         
         workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
         
@@ -360,10 +610,10 @@ async def lol_analysis(ctx, style: str = "default"):
         # 动态获取风格名称映射
         style_names = get_style_display_names()
         
-        await ctx.reply(f"🎮 **开始{style_names[style]}分析你的最新游戏...**")
+        await ctx.reply(f"🎮 **开始{style_names[style]}分析 {username}#{tag} 的最新游戏...**")
         
-        # 运行完整流程，传入风格参数
-        success = await workflow.run_full_workflow(voice_channel_id, style=style)
+        # 运行完整流程，传入用户名、标签和风格参数
+        success = await workflow.run_full_workflow_with_user(voice_channel_id, username, tag, style=style)
         
         if success:
             await ctx.reply(f"🎉 **{style_names[style]}分析完成！** 游戏分析完成，音频已播放完毕。")
@@ -440,8 +690,8 @@ async def lol_style_analysis(ctx, style: str = "default"):
     """
     try:
         # 验证风格名称
-        from services.prompts import STYLE_CONFIGS
-        valid_styles = list(STYLE_CONFIGS.keys())
+        from services.prompts import prompt_manager
+        valid_styles = prompt_manager.get_available_styles()
         if style not in valid_styles:
             await ctx.reply(f"❌ 无效的风格名称。可用风格: {', '.join(valid_styles)}")
             return
@@ -498,7 +748,7 @@ async def lolcheck_analysis(ctx, *, args: str = None):
         style = "default"
         
         # 导入 STYLE_CONFIGS 一次
-        from services.prompts import STYLE_CONFIGS
+        from services.prompts import prompt_manager
         
         # 查找包含#的部分或组合用户名#标签
         for i, part in enumerate(parts):
@@ -508,7 +758,7 @@ async def lolcheck_analysis(ctx, *, args: str = None):
                 # 检查后面是否还有参数作为风格
                 if i + 1 < len(parts):
                     potential_style = parts[i + 1]
-                    if potential_style in STYLE_CONFIGS:
+                    if potential_style in prompt_manager.get_available_styles():
                         style = potential_style
                 break
             elif i + 1 < len(parts) and parts[i + 1].startswith('#'):
@@ -518,7 +768,7 @@ async def lolcheck_analysis(ctx, *, args: str = None):
                 if i + 2 < len(parts):
                     potential_style = parts[i + 2]
                     # 只有当它是有效的风格名称时才使用
-                    if potential_style in STYLE_CONFIGS:
+                    if potential_style in prompt_manager.get_available_styles():
                         style = potential_style
                     # 如果不是有效风格，保持默认值，忽略这个参数
                 break
@@ -544,7 +794,7 @@ async def lolcheck_analysis(ctx, *, args: str = None):
             return
         
         # 验证风格名称
-        valid_styles = list(STYLE_CONFIGS.keys())
+        valid_styles = prompt_manager.get_available_styles()
         if style not in valid_styles:
             await ctx.reply(f"❌ 无效的风格名称 '{style}'。可用风格: {', '.join(valid_styles)}")
             return
@@ -577,6 +827,111 @@ async def lolcheck_analysis(ctx, *, args: str = None):
         await ctx.reply(f"❌ **执行失败**: {e}")
 
 
+@bot.command(name="va")
+async def va_analysis(ctx, *, args: str = None):
+    """
+    检查指定用户的Valorant最新游戏数据
+    用法: !va username#tag [风格名称]
+    示例: !va TenZ#SEN professional
+    注意: 需要先加入语音频道
+    """
+    try:
+        if not args:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!va username#tag [风格]`")
+            return
+        
+        # 解析参数：username#tag [style]
+        # 处理用户名和标签可能被空格分隔的情况
+        parts = args.split()
+        
+        if len(parts) < 1:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!va username#tag [风格]`")
+            return
+        
+        # 重新组合用户名和标签
+        username_tag = None
+        style = "default"
+        
+        # 导入 STYLE_CONFIGS 一次
+        from services.prompts import prompt_manager
+        
+        # 查找包含#的部分或组合用户名#标签
+        for i, part in enumerate(parts):
+            if '#' in part:
+                # 如果这个部分包含#，直接使用
+                username_tag = part
+                # 检查后面是否还有参数作为风格
+                if i + 1 < len(parts):
+                    potential_style = parts[i + 1]
+                    if potential_style in prompt_manager.get_available_styles():
+                        style = potential_style
+                break
+            elif i + 1 < len(parts) and parts[i + 1].startswith('#'):
+                # 如果当前部分没有#，但下一部分以#开头，组合它们
+                username_tag = part + parts[i + 1]
+                # 检查后面是否还有参数作为风格
+                if i + 2 < len(parts):
+                    potential_style = parts[i + 2]
+                    # 只有当它是有效的风格名称时才使用
+                    if potential_style in prompt_manager.get_available_styles():
+                        style = potential_style
+                    # 如果不是有效风格，保持默认值，忽略这个参数
+                break
+        
+        if not username_tag:
+            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
+            return
+        
+        # 解析用户名和标签
+        if '#' not in username_tag:
+            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
+            return
+        
+        username_parts = username_tag.split('#', 1)
+        if len(username_parts) != 2:
+            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
+            return
+        
+        game_name, tag_line = username_parts[0].strip(), username_parts[1].strip()
+        
+        if not game_name or not tag_line:
+            await ctx.reply("❌ 用户名和标签不能为空")
+            return
+        
+        # 验证风格名称
+        valid_styles = prompt_manager.get_available_styles()
+        if style not in valid_styles:
+            await ctx.reply(f"❌ 无效的风格名称 '{style}'。可用风格: {', '.join(valid_styles)}")
+            return
+        
+        # 检查用户是否在语音频道中
+        if not ctx.author.voice or not ctx.author.voice.channel:
+            await ctx.reply("❌ 请先加入语音频道再使用此命令")
+            return
+        
+        voice_channel_id = ctx.author.voice.channel.id
+        
+        # 风格名称映射 - 从 STYLE_CONFIGS 动态生成
+        # 动态获取风格名称映射
+        style_names = get_style_display_names()
+        
+        await ctx.reply(f"🔫 **开始{style_names[style]}分析 {game_name}#{tag_line} 的最新Valorant游戏...**")
+        
+        # 创建Valorant工作流程
+        workflow = VAWorkflow(ctx=ctx)
+        
+        # 运行完整流程，传入动态用户参数和风格
+        success = await workflow.run_full_workflow(voice_channel_id, game_name, tag_line, style=style)
+        
+        if success:
+            await ctx.reply(f"🎉 **{game_name}#{tag_line} 的{style_names[style]}Valorant分析完成！** 游戏分析完成，音频已播放完毕。")
+        else:
+            await ctx.reply("❌ **Valorant游戏分析失败**，请检查用户名和标签是否正确。")
+            
+    except Exception as e:
+        await ctx.reply(f"❌ **执行失败**: {e}")
+
+
 @bot.command(name="files")
 async def show_file_stats(ctx):
     """
@@ -603,18 +958,16 @@ async def on_ready():
     print(f"✅ Discord Bot已登录: {bot.user}")
     print("🎮 LOL工作流程机器人已就绪!")
     print("可用命令:")
-    print("  !lol [风格] - 运行完整分析流程（默认搞子风格）")
-    print("  !lol_style [风格] - 运行指定风格分析流程")
-    print("  !lol_custom [自定义提示词] - 运行自定义分析流程")
-    print("  !lolcheck username#tag [风格] - 检查指定用户的最新游戏数据")
+    print("  !lol username#tag [风格] - 分析指定用户的LOL最新游戏数据")
+    print("  !va username#tag [风格] - 分析指定用户的Valorant最新游戏数据")
     print("  !test - 测试工作流程（不播放音频）")
     print("  !files - 显示文件统计信息")
     # 动态获取可用风格
-    from services.prompts import STYLE_CONFIGS
-    available_styles = list(STYLE_CONFIGS.keys())
+    from services.prompts import prompt_manager
+    available_styles = prompt_manager.get_available_styles()
     print(f"  可用风格: {', '.join(available_styles)}")
-    print("  示例: !lol kfk_dp 或 !lol_style azi")
-    print("  示例: !lolcheck Faker#KR1 或 !lolcheck Faker#KR1 taffy")
+    print("  示例: !lol Faker#KR1 kfk_dp 或 !lol Faker#KR1 azi")
+    print("  示例: !va TenZ#SEN 或 !va TenZ#SEN professional")
     print("  注意: 使用前请先加入语音频道")
     print("  文件管理: 自动保留最近5次记录，无需手动清理")
 

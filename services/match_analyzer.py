@@ -2,7 +2,7 @@ import json
 import os
 from openai import OpenAI
 from dotenv import load_dotenv
-from .prompts import get_style_config, format_prompt
+from .prompts import prompt_manager
 
 # Load environment variables
 load_dotenv()
@@ -37,25 +37,19 @@ def convert_to_chinese_mature_tone(match_data, prompt=None, system_role=None, st
     
     # Get style configuration if custom prompt/role not provided
     if prompt is None or system_role is None:
-        # print(f"DEBUG: 获取风格配置，风格: {style}")
-        style_config = get_style_config(style)
-        print(f"DEBUG: 风格配置: {style_config}")
+        style_config = prompt_manager.get_style_config(style)
         if prompt is None:
             prompt = style_config["prompt"]
-            print(f"DEBUG: 使用风格提示词，长度: {len(prompt)}")
         if system_role is None:
             system_role = style_config["system_role"]
-            print(f"DEBUG: 使用风格系统角色，长度: {len(system_role)}")
         
         # Get voice_id from style config
         voice_id = style_config.get("voice_id")
-        print(f"DEBUG: 获取到voice_id: {voice_id}")
     else:
         voice_id = None
-        print("DEBUG: 使用自定义提示词和系统角色")
     
     # Format the prompt with match data
-    formatted_prompt = format_prompt(prompt, match_data)
+    formatted_prompt = prompt_manager.format_prompt(prompt, match_data)
 
     try:
         response = client.chat.completions.create(

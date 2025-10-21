@@ -204,8 +204,6 @@ def get_summoner_info(game_name=None, tag_line=None):
         target_game_name = game_name or GAME_NAME
         target_tag_line = tag_line or TAG_LINE
         
-        print(f"[DEBUG] get_summoner_info 参数: game_name='{game_name}', tag_line='{tag_line}'")
-        print(f"[DEBUG] 实际使用: target_game_name='{target_game_name}', target_tag_line='{target_tag_line}'")
         
         if not target_game_name or not target_tag_line:
             raise ValueError("游戏用户名和标签不能为空")
@@ -213,7 +211,6 @@ def get_summoner_info(game_name=None, tag_line=None):
         # 获取账户信息 - 对用户名进行 URL 编码以处理特殊字符
         encoded_game_name = quote(target_game_name, safe='')
         account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{encoded_game_name}/{target_tag_line}"
-        print(f"[DEBUG] 请求 URL: {account_url}")
         account_response = requests.get(account_url, headers=HEADERS, timeout=10)
         account_response.raise_for_status()
         account_data = account_response.json()
@@ -237,7 +234,6 @@ def get_summoner_info(game_name=None, tag_line=None):
         print(f"[ERROR] 获取召唤师信息失败: {e}")
         return None
     except KeyError as e:
-        print(f"[DEBUG] 召唤师数据: {summoner_data}")
         return None
     except Exception as e:
         print(f"[ERROR] 获取召唤师信息时发生未知错误: {e}")
@@ -319,9 +315,6 @@ def analyze_match_data(match_data, summoner_info):
         lvp_name = lvp.get('summonerName', '') or lvp.get('riotIdGameName', '')
         
         # 调试信息
-        # print(f"[DEBUG] 玩家信息字段: {list(player_info.keys())}")
-        print(f"[DEBUG] 玩家名字: summonerName='{player_info.get('summonerName', '')}', riotIdGameName='{player_info.get('riotIdGameName', '')}'")
-        print(f"[DEBUG] 召唤师信息: {summoner_info}")
         
         # 构建分析结果
         analysis = {
@@ -389,7 +382,6 @@ def get_match_data_for_user(game_name, tag_line):
     
     try:
         print(f"正在获取玩家信息: {game_name}#{tag_line}")
-        print(f"[DEBUG] 传入参数: game_name='{game_name}', tag_line='{tag_line}'")
         
         # 获取召唤师信息
         summoner_info = get_summoner_info(game_name, tag_line)
