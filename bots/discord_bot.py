@@ -25,6 +25,31 @@ from services.utils import find_latest_json_file, ensure_directory, cleanup_old_
 # 加载环境变量
 load_dotenv()
 
+def get_style_display_names():
+    """动态生成风格显示名称映射"""
+    from services.prompts import STYLE_CONFIGS
+    
+    # 基础映射
+    base_mapping = {
+        "default": "搞子风格",
+        "kfk_dp": "专业风格", 
+        "kfk": "专业风格",
+        "azi": "Azi风格",
+        "dingzhen": "丁震风格",
+        "taffy": "Taffy风格"
+    }
+    
+    # 为所有 STYLE_CONFIGS 中的风格生成显示名称
+    result = {}
+    for style_name in STYLE_CONFIGS.keys():
+        if style_name in base_mapping:
+            result[style_name] = base_mapping[style_name]
+        else:
+            # 如果新风格没有在基础映射中，使用风格名称本身
+            result[style_name] = f"{style_name}风格"
+    
+    return result
+
 # Discord Bot 配置
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -313,13 +338,14 @@ async def lol_analysis(ctx, style: str = "default"):
     """
     运行完整的LOL游戏分析流程
     用法: !lol [风格名称]
-    可用风格: default(搞子), professional(专业), humorous(幽默)
+    可用风格: 动态从STYLE_CONFIGS获取
     示例: !lol professional
     注意: 需要先加入语音频道
     """
     try:
         # 验证风格名称
-        valid_styles = ["default", "professional", "humorous"]
+        from services.prompts import STYLE_CONFIGS
+        valid_styles = list(STYLE_CONFIGS.keys())
         if style not in valid_styles:
             await ctx.reply(f"❌ 无效的风格名称。可用风格: {', '.join(valid_styles)}")
             return
@@ -333,11 +359,8 @@ async def lol_analysis(ctx, style: str = "default"):
         
         voice_channel_id = ctx.author.voice.channel.id
         
-        style_names = {
-            "default": "搞子风格",
-            "professional": "专业风格", 
-            "humorous": "幽默风格"
-        }
+        # 动态获取风格名称映射
+        style_names = get_style_display_names()
         
         await ctx.reply(f"🎮 **开始{style_names[style]}分析你的最新游戏...**")
         
@@ -413,13 +436,14 @@ async def lol_style_analysis(ctx, style: str = "default"):
     """
     运行指定风格的LOL游戏分析流程
     用法: !lol_style [风格名称]
-    可用风格: default(搞子), professional(专业), humorous(幽默)
+    可用风格: 动态从STYLE_CONFIGS获取
     示例: !lol_style professional
     注意: 需要先加入语音频道
     """
     try:
         # 验证风格名称
-        valid_styles = ["default", "professional", "humorous"]
+        from services.prompts import STYLE_CONFIGS
+        valid_styles = list(STYLE_CONFIGS.keys())
         if style not in valid_styles:
             await ctx.reply(f"❌ 无效的风格名称。可用风格: {', '.join(valid_styles)}")
             return
@@ -433,11 +457,8 @@ async def lol_style_analysis(ctx, style: str = "default"):
         
         voice_channel_id = ctx.author.voice.channel.id
         
-        style_names = {
-            "default": "搞子风格",
-            "professional": "专业风格", 
-            "humorous": "幽默风格"
-        }
+        # 动态获取风格名称映射
+        style_names = get_style_display_names()
         
         await ctx.reply(f"🎮 **开始{style_names[style]}分析你的最新游戏...**")
         
@@ -454,7 +475,7 @@ async def lol_style_analysis(ctx, style: str = "default"):
 
 
 @bot.command(name="lolcheck")
-async def lolcheck_analysis(ctx, *, username_tag: str = None):
+async def lolcheck_analysis(ctx, *, args: str = None):
     """
     检查指定用户的最新游戏数据
     用法: !lolcheck username#tag [风格名称]
@@ -462,8 +483,50 @@ async def lolcheck_analysis(ctx, *, username_tag: str = None):
     注意: 需要先加入语音频道
     """
     try:
+        if not args:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!lolcheck username#tag [风格]`")
+            return
+        
+        # 解析参数：username#tag [style]
+        # 处理用户名和标签可能被空格分隔的情况
+        parts = args.split()
+        
+        if len(parts) < 1:
+            await ctx.reply("❌ 请提供用户名和标签，格式: `!lolcheck username#tag [风格]`")
+            return
+        
+        # 重新组合用户名和标签
+        username_tag = None
+        style = "default"
+        
+        # 导入 STYLE_CONFIGS 一次
+        from services.prompts import STYLE_CONFIGS
+        
+        # 查找包含#的部分或组合用户名#标签
+        for i, part in enumerate(parts):
+            if '#' in part:
+                # 如果这个部分包含#，直接使用
+                username_tag = part
+                # 检查后面是否还有参数作为风格
+                if i + 1 < len(parts):
+                    potential_style = parts[i + 1]
+                    if potential_style in STYLE_CONFIGS:
+                        style = potential_style
+                break
+            elif i + 1 < len(parts) and parts[i + 1].startswith('#'):
+                # 如果当前部分没有#，但下一部分以#开头，组合它们
+                username_tag = part + parts[i + 1]
+                # 检查后面是否还有参数作为风格
+                if i + 2 < len(parts):
+                    potential_style = parts[i + 2]
+                    # 只有当它是有效的风格名称时才使用
+                    if potential_style in STYLE_CONFIGS:
+                        style = potential_style
+                    # 如果不是有效风格，保持默认值，忽略这个参数
+                break
+        
         if not username_tag:
-            await ctx.reply("❌ 请提供用户名和标签，格式: `!lolcheck username#tag`")
+            await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
             return
         
         # 解析用户名和标签
@@ -471,15 +534,21 @@ async def lolcheck_analysis(ctx, *, username_tag: str = None):
             await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
             return
         
-        parts = username_tag.split('#', 1)
-        if len(parts) != 2:
+        username_parts = username_tag.split('#', 1)
+        if len(username_parts) != 2:
             await ctx.reply("❌ 格式错误，请使用 `username#tag` 格式")
             return
         
-        game_name, tag_line = parts[0].strip(), parts[1].strip()
+        game_name, tag_line = username_parts[0].strip(), username_parts[1].strip()
         
         if not game_name or not tag_line:
             await ctx.reply("❌ 用户名和标签不能为空")
+            return
+        
+        # 验证风格名称
+        valid_styles = list(STYLE_CONFIGS.keys())
+        if style not in valid_styles:
+            await ctx.reply(f"❌ 无效的风格名称 '{style}'。可用风格: {', '.join(valid_styles)}")
             return
         
         # 检查用户是否在语音频道中
@@ -489,16 +558,20 @@ async def lolcheck_analysis(ctx, *, username_tag: str = None):
         
         voice_channel_id = ctx.author.voice.channel.id
         
-        await ctx.reply(f"🎮 **开始分析 {game_name}#{tag_line} 的最新游戏...**")
+        # 风格名称映射 - 从 STYLE_CONFIGS 动态生成
+        # 动态获取风格名称映射
+        style_names = get_style_display_names()
+        
+        await ctx.reply(f"🎮 **开始{style_names[style]}分析 {game_name}#{tag_line} 的最新游戏...**")
         
         # 创建支持动态用户的工作流程
         workflow = LOLWorkflow(ctx=ctx)
         
-        # 运行完整流程，传入动态用户参数
-        success = await workflow.run_full_workflow_with_user(voice_channel_id, game_name, tag_line)
+        # 运行完整流程，传入动态用户参数和风格
+        success = await workflow.run_full_workflow_with_user(voice_channel_id, game_name, tag_line, style=style)
         
         if success:
-            await ctx.reply(f"🎉 **{game_name}#{tag_line} 的分析完成！** 游戏分析完成，音频已播放完毕。")
+            await ctx.reply(f"🎉 **{game_name}#{tag_line} 的{style_names[style]}分析完成！** 游戏分析完成，音频已播放完毕。")
         else:
             await ctx.reply("❌ **游戏分析失败**，请检查用户名和标签是否正确。")
             
@@ -535,12 +608,15 @@ async def on_ready():
     print("  !lol [风格] - 运行完整分析流程（默认搞子风格）")
     print("  !lol_style [风格] - 运行指定风格分析流程")
     print("  !lol_custom [自定义提示词] - 运行自定义分析流程")
-    print("  !lolcheck username#tag - 检查指定用户的最新游戏数据")
+    print("  !lolcheck username#tag [风格] - 检查指定用户的最新游戏数据")
     print("  !test - 测试工作流程（不播放音频）")
     print("  !files - 显示文件统计信息")
-    print("  可用风格: default(搞子), professional(专业), humorous(幽默)")
-    print("  示例: !lol professional 或 !lol_style professional")
-    print("  示例: !lolcheck Faker#KR1")
+    # 动态获取可用风格
+    from services.prompts import STYLE_CONFIGS
+    available_styles = list(STYLE_CONFIGS.keys())
+    print(f"  可用风格: {', '.join(available_styles)}")
+    print("  示例: !lol kfk_dp 或 !lol_style azi")
+    print("  示例: !lolcheck Faker#KR1 或 !lolcheck Faker#KR1 taffy")
     print("  注意: 使用前请先加入语音频道")
     print("  文件管理: 自动保留最近5次记录，无需手动清理")
 

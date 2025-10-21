@@ -7,3 +7,8 @@ nova_voice_id = b5fe37182e63465486a09fb429fa78f2
 老太_voice_id = 1b0238b2782e43daa7e3d1625df32257
 
 taffy = 156b6abab27e43a5a648cbff6f659bc3
+taffy_2 = e313eef1d0714a05bf78f0b9f58ea087
+
+azi = 295bb15699a647b0b8f09484fe519147
+
+dingzhen = c8fe1b988111469884e27df3758fb0bf
