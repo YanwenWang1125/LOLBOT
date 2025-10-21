@@ -64,17 +64,19 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 加载Presence Commands
-@bot.event
-async def on_ready():
-    """Bot启动时加载cogs"""
-    try:
-        from bots.commands_presence import PresenceCommands
-        await bot.add_cog(PresenceCommands(bot))
-        print("✅ Presence commands loaded successfully")
-    except Exception as e:
-        print(f"❌ Failed to load presence commands: {e}")
+# 频道限制配置
+ALLOWED_CHANNEL_NAME = "红温时刻"
 
+def is_allowed_channel(ctx):
+    """检查是否在允许的频道中"""
+    return ctx.channel.name == ALLOWED_CHANNEL_NAME
+
+async def check_channel_permission(ctx):
+    """检查频道权限，如果不在允许的频道中则忽略命令"""
+    if not is_allowed_channel(ctx):
+        # 静默忽略，不发送任何回复
+        return False
+    return True
 
 class LOLWorkflow:
     def __init__(self, ctx=None):
@@ -567,6 +569,10 @@ async def lol_analysis(ctx, *, args: str = None):
     示例: !lol Faker#KR1 professional
     注意: 需要先加入语音频道
     """
+    # 检查频道权限
+    if not await check_channel_permission(ctx):
+        return
+    
     try:
         if not args:
             await ctx.reply("❌ 请提供用户名和标签，格式: `!lol username#tag [风格]`")
@@ -657,6 +663,10 @@ async def lol_analysis(ctx, *, args: str = None):
 @bot.command(name="test")
 async def test_workflow(ctx):
     """测试工作流程（不播放音频）"""
+    # 检查频道权限
+    if not await check_channel_permission(ctx):
+        return
+    
     try:
         workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
         
@@ -678,80 +688,6 @@ async def test_workflow(ctx):
         await ctx.reply(f"❌ **测试失败**: {e}")
 
 
-@bot.command(name="lol_custom")
-async def lol_custom_analysis(ctx, *, custom_prompt: str = None):
-    """
-    运行自定义LOL游戏分析流程
-    用法: !lol_custom [自定义提示词]
-    示例: !lol_custom "请生成一个专业的游戏分析"
-    注意: 需要先加入语音频道
-    """
-    try:
-        workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
-        
-        # 检查用户是否在语音频道中
-        if not ctx.author.voice or not ctx.author.voice.channel:
-            await ctx.reply("❌ 请先加入语音频道再使用此命令")
-            return
-        
-        voice_channel_id = ctx.author.voice.channel.id
-        await ctx.reply("🎮 **开始自定义分析你的最新游戏...**")
-        
-        # 运行完整流程，传入自定义参数
-        success = await workflow.run_full_workflow(voice_channel_id, custom_prompt)
-        
-        if success:
-            await ctx.reply("🎉 **自定义分析完成！** 游戏分析完成，音频已播放完毕。")
-        else:
-            await ctx.reply("❌ **自定义分析失败**，请检查配置。")
-            
-    except Exception as e:
-        await ctx.reply(f"❌ **执行失败**: {e}")
-
-
-@bot.command(name="lol_style")
-async def lol_style_analysis(ctx, style: str = "default"):
-    """
-    运行指定风格的LOL游戏分析流程
-    用法: !lol_style [风格名称]
-    可用风格: 动态从STYLE_CONFIGS获取
-    示例: !lol_style professional
-    注意: 需要先加入语音频道
-    """
-    try:
-        # 验证风格名称
-        from services.prompts import prompt_manager
-        valid_styles = prompt_manager.get_available_styles()
-        if style not in valid_styles:
-            await ctx.reply(f"❌ 无效的风格名称。可用风格: {', '.join(valid_styles)}")
-            return
-        
-        workflow = LOLWorkflow(ctx=ctx)  # 传递Discord上下文
-        
-        # 检查用户是否在语音频道中
-        if not ctx.author.voice or not ctx.author.voice.channel:
-            await ctx.reply("❌ 请先加入语音频道再使用此命令")
-            return
-        
-        voice_channel_id = ctx.author.voice.channel.id
-        
-        # 动态获取风格名称映射
-        style_names = get_style_display_names()
-        
-        await ctx.reply(f"🎮 **开始{style_names[style]}分析你的最新游戏...**")
-        
-        # 运行完整流程，传入风格参数
-        success = await workflow.run_full_workflow(voice_channel_id, style=style)
-        
-        if success:
-            await ctx.reply(f"🎉 **{style_names[style]}分析完成！** 游戏分析完成，音频已播放完毕。")
-        else:
-            await ctx.reply("❌ **风格分析失败**，请检查配置。")
-            
-    except Exception as e:
-        await ctx.reply(f"❌ **执行失败**: {e}")
-
-
 @bot.command(name="va")
 async def va_analysis(ctx, *, args: str = None):
     """
@@ -760,6 +696,10 @@ async def va_analysis(ctx, *, args: str = None):
     示例: !va TenZ#SEN professional
     注意: 需要先加入语音频道
     """
+    # 检查频道权限
+    if not await check_channel_permission(ctx):
+        return
+    
     try:
         if not args:
             await ctx.reply("❌ 请提供用户名和标签，格式: `!va username#tag [风格]`")
@@ -863,6 +803,10 @@ async def show_file_stats(ctx):
     显示文件统计信息
     用法: !files
     """
+    # 检查频道权限
+    if not await check_channel_permission(ctx):
+        return
+    
     try:
         stats = get_file_count_info()
         
@@ -878,16 +822,49 @@ async def show_file_stats(ctx):
         await ctx.reply(f"❌ **获取统计失败**: {e}")
 
 
+# 全局频道检查事件
+@bot.event
+async def on_message(message):
+    """全局消息检查 - 只允许在红温时刻频道中响应"""
+    # 忽略机器人自己的消息
+    if message.author.bot:
+        return
+    
+    # 检查是否在允许的频道中
+    if message.channel.name != ALLOWED_CHANNEL_NAME:
+        # 静默忽略，不处理任何命令
+        return
+    
+    # 如果在允许的频道中，继续处理命令
+    await bot.process_commands(message)
+
 @bot.event
 async def on_ready():
+    """Bot启动时加载cogs和显示状态"""
     print(f"✅ Discord Bot已登录: {bot.user}")
+    print(f"🎯 LOLBOT 已限制为只在 '{ALLOWED_CHANNEL_NAME}' 频道中响应")
+    
+    # 加载Presence Commands
+    try:
+        from bots.commands_presence import PresenceCommands
+        await bot.add_cog(PresenceCommands(bot))
+        print("✅ Presence commands loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load presence commands: {e}")
+    
     print("🎮 LOL工作流程机器人已就绪!")
     print("可用命令:")
     print("  !lol username#tag [风格] - 分析指定用户的LOL最新游戏数据")
     print("  !va username#tag [风格] - 分析指定用户的Valorant最新游戏数据")
-    print("  !vahistory - 查看Valorant比赛历史记录（最多5个）")
+    print("  !register_riot username#tag - 注册Riot ID绑定")
+    print("  !unregister_riot - 取消Riot ID绑定")
     print("  !test - 测试工作流程（不播放音频）")
     print("  !files - 显示文件统计信息")
+    print("  !check_presence [RiotID] - 检查用户在线状态")
+    print("  !online_players - 显示所有在线玩家")
+    print("  !voice_players - 显示所有在语音频道的玩家")
+    print("  !check_user_status [RiotID] - 检查用户是否在服务器中")
+    print("  !show_data_location - 显示数据存储信息")
     # 动态获取可用风格
     from services.prompts import prompt_manager
     available_styles = prompt_manager.get_available_styles()

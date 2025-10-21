@@ -1,3 +1,25 @@
 {
-  "players": []
+  "players": [
+    {
+      "discord_id": "416411638812639238",
+      "riot_id": "exm233#233",
+      "game": "LOL",
+      "registered_at": "2025-10-21T15:54:52.242497",
+      "last_match_id": null
+    },
+    {
+      "discord_id": "260029126134464513",
+      "riot_id": "Loveù#na1",
+      "game": "LOL",
+      "registered_at": "2025-10-21T15:56:19.470610",
+      "last_match_id": null
+    },
+    {
+      "discord_id": "315639772921987072",
+      "riot_id": "ohsofanta#na1",
+      "game": "LOL",
+      "registered_at": "2025-10-21T16:12:28.889276",
+      "last_match_id": null
+    }
+  ]
 }
