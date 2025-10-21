@@ -9,6 +9,7 @@ import json
 import requests
 from datetime import datetime
 from dotenv import load_dotenv
+from urllib.parse import quote
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -203,11 +204,16 @@ def get_summoner_info(game_name=None, tag_line=None):
         target_game_name = game_name or GAME_NAME
         target_tag_line = tag_line or TAG_LINE
         
+        print(f"[DEBUG] get_summoner_info 参数: game_name='{game_name}', tag_line='{tag_line}'")
+        print(f"[DEBUG] 实际使用: target_game_name='{target_game_name}', target_tag_line='{target_tag_line}'")
+        
         if not target_game_name or not target_tag_line:
             raise ValueError("游戏用户名和标签不能为空")
         
-        # 获取账户信息
-        account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{target_game_name}/{target_tag_line}"
+        # 获取账户信息 - 对用户名进行 URL 编码以处理特殊字符
+        encoded_game_name = quote(target_game_name, safe='')
+        account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{encoded_game_name}/{target_tag_line}"
+        print(f"[DEBUG] 请求 URL: {account_url}")
         account_response = requests.get(account_url, headers=HEADERS, timeout=10)
         account_response.raise_for_status()
         account_data = account_response.json()
@@ -383,6 +389,7 @@ def get_match_data_for_user(game_name, tag_line):
     
     try:
         print(f"正在获取玩家信息: {game_name}#{tag_line}")
+        print(f"[DEBUG] 传入参数: game_name='{game_name}', tag_line='{tag_line}'")
         
         # 获取召唤师信息
         summoner_info = get_summoner_info(game_name, tag_line)
