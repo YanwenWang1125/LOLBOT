@@ -67,7 +67,7 @@ audio/*.aac
 *.cache
 
 # API Keys and sensitive data
-config.json
+# config.json  # Allow prompts/config.json as it contains non-sensitive configuration
 secrets.json
 *.key
 *.pem
