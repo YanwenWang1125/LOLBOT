@@ -94,8 +94,10 @@ class LOLWorkflow:
             # 运行riot_checker获取数据
             get_match_data()
             
-            # 找到最新生成的JSON文件
-            self.current_match_file = find_latest_json_file("analysis")
+            # 找到最新生成的JSON文件（使用项目根目录的 analysis 目录，避免受当前工作目录影响）
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            analysis_dir = os.path.join(root_dir, "analysis")
+            self.current_match_file = find_latest_json_file(analysis_dir)
             if not self.current_match_file:
                 raise FileNotFoundError("未找到游戏数据文件")
             
@@ -126,8 +128,10 @@ class LOLWorkflow:
             if not success:
                 raise Exception("获取用户游戏数据失败")
             
-            # 找到最新生成的JSON文件
-            self.current_match_file = find_latest_json_file("analysis")
+            # 找到最新生成的JSON文件（使用项目根目录的 analysis 目录，避免受当前工作目录影响）
+            root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            analysis_dir = os.path.join(root_dir, "analysis")
+            self.current_match_file = find_latest_json_file(analysis_dir)
             if not self.current_match_file:
                 raise FileNotFoundError("未找到游戏数据文件")
             
@@ -175,7 +179,7 @@ class LOLWorkflow:
             print(f"[DEBUG] 本次使用的Prompt：{prompt}")
             # print(prompt if prompt else f"(风格: {style}，使用风格内置prompt)")
             
-            print("[OK] 中文分析生成成功")
+            print("[OK] 中文分析生成成功..")
             print(f"📝 分析内容: {self.chinese_analysis[:100]}...")
             
             if self.ctx:
@@ -414,7 +418,7 @@ class VAWorkflow:
             
             self.chinese_analysis, self.voice_id = result
             
-            print("[OK] Valorant中文分析生成成功")
+            print("[OK] 测试成功...分析生成成功.")
             print(f"📝 分析内容: {self.chinese_analysis[:100]}...")
             
             if self.ctx:
