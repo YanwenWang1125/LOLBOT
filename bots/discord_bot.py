@@ -626,14 +626,20 @@ def main():
     print("英雄联盟游戏分析工作流程")
     print("=" * 50)
     
-    # 检查必要的环境变量
-    required_vars = ["RIOT_API_KEY", "GAME_NAME", "TAG_LINE", "OPENAI_API_KEY", "DISCORD_TOKEN", "VOICV_API_KEY", "VOICV_VOICE_ID"]
+    # 检查必要的环境变量（无默认值的）
+    required_vars = ["RIOT_API_KEY", "OPENAI_API_KEY", "DISCORD_TOKEN", "VOICV_API_KEY"]
     missing_vars = [var for var in required_vars if not os.getenv(var)]
     
     if missing_vars:
         print(f"❌ 缺少必要的环境变量: {', '.join(missing_vars)}")
         print("请在.env文件中设置这些变量")
         return
+    
+    # 检查可选环境变量并设置默认值
+    game_name = os.getenv("GAME_NAME", "exm233")
+    tag_line = os.getenv("TAG_LINE", "233")
+    
+    print(f"📝 默认用户: {game_name}#{tag_line} (可通过!lolcheck命令动态指定)")
     
     print("✅ 所有配置检查通过")
     print("🚀 启动Discord Bot...")

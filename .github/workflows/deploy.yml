@@ -50,7 +50,10 @@ jobs:
               OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
               DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN }}" \
               VOICV_API_KEY="${{ secrets.VOICV_API_KEY }}" \
-
+              GAME_NAME="${{ secrets.GAME_NAME }}" \
+              TAG_LINE="${{ secrets.TAG_LINE }}" \
+              REGION="${{ secrets.REGION }}" \
+              REGION_ROUTE="${{ secrets.REGION_ROUTE }}"
 
       # ✅ Step 6: 验证部署
       - name: Verify deployment
