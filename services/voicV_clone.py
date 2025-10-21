@@ -5,12 +5,14 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-API_KEY = os.getenv("VOICV_API_KEY")
 AUDIO_PATH = r"C:\Users\Leo\AI projects\LOLBOT\audio_source\dingzhen_3.wav"
-if not API_KEY:
-    print("缺少环境变量 VOICV_API_KEY"); sys.exit(1)
 if not AUDIO_PATH or not os.path.exists(AUDIO_PATH):
     print("用法: python clone_voice.py /path/to/voice.mp3"); sys.exit(1)
+
+# 检查环境变量
+API_KEY = os.getenv("VOICV_API_KEY")
+if not API_KEY:
+    print("缺少环境变量 VOICV_API_KEY"); sys.exit(1)
 
 url = "https://api.voicv.com/v1/voice-clone"
 headers = {"x-api-key": API_KEY}

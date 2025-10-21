@@ -12,8 +12,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 VOICV_BASE = "https://api.voicv.com"
-VOICV_API_KEY = os.getenv("VOICV_API_KEY")
-VOICV_VOICE_ID = os.getenv("VOICV_VOICE_ID")
 
 
 def generate_tts_audio(text: str, output_path: str = None, voice_id: str = None) -> str:
@@ -29,13 +27,14 @@ def generate_tts_audio(text: str, output_path: str = None, voice_id: str = None)
         生成的音频文件路径，失败返回None
     """
     # 检查环境变量
-    if not VOICV_API_KEY:
+    voicv_api_key = os.getenv("VOICV_API_KEY")
+    if not voicv_api_key:
         print("[ERROR] 缺少环境变量 VOICV_API_KEY")
         return None
     
     # 使用传入的voice_id或默认的VOICV_VOICE_ID
     if voice_id is None:
-        voice_id = VOICV_VOICE_ID
+        voice_id = os.getenv("VOICV_VOICE_ID")
         if not voice_id:
             # 使用默认语音ID
             voice_id = "cdf5f2a7604849e2a5ccd07ccf628ee6"
@@ -48,7 +47,7 @@ def generate_tts_audio(text: str, output_path: str = None, voice_id: str = None)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         output_path = f"audio/match_analysis_{timestamp}.mp3"
     
-    headers = {"x-api-key": VOICV_API_KEY, "Content-Type": "application/json"}
+    headers = {"x-api-key": voicv_api_key, "Content-Type": "application/json"}
     payload = {"voiceId": voice_id, "text": text, "format": "mp3"}
     
     try:

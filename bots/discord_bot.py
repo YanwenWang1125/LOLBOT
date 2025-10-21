@@ -53,8 +53,6 @@ def get_style_display_names():
 # Discord Bot 配置
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-VOICV_API_KEY = os.getenv("VOICV_API_KEY")
-VOICV_VOICE_ID = os.getenv("VOICV_VOICE_ID")
 # FFMPEG_PATH removed - now using ffmpeg-python
 
 # 初始化Discord Bot
