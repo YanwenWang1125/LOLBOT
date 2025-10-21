@@ -37,8 +37,8 @@ def generate_tts_audio(text: str, output_path: str = None, voice_id: str = None)
     if voice_id is None:
         voice_id = VOICV_VOICE_ID
         if not voice_id:
-            print("[ERROR] 缺少环境变量 VOICV_VOICE_ID")
-            return None
+            # 使用默认语音ID
+            voice_id = "cdf5f2a7604849e2a5ccd07ccf628ee6"
     
     # 生成输出路径
     if not output_path:

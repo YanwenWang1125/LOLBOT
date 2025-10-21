@@ -19,9 +19,7 @@ def check_environment():
     print("🔍 检查环境变量...")
     
     required_vars = [
-        "RIOT_API_KEY", "GAME_NAME", "TAG_LINE", 
-        "OPENAI_API_KEY", "DISCORD_TOKEN", 
-        "VOICV_API_KEY", "VOICV_VOICE_ID"
+        "RIOT_API_KEY", "OPENAI_API_KEY", "DISCORD_TOKEN", "VOICV_API_KEY"
     ]
     
     missing_vars = [var for var in required_vars if not os.getenv(var)]
@@ -86,7 +84,7 @@ def check_voicv_api():
     
     try:
         api_key = os.getenv("VOICV_API_KEY")
-        voice_id = os.getenv("VOICV_VOICE_ID")
+        voice_id = os.getenv("VOICV_VOICE_ID", "cdf5f2a7604849e2a5ccd07ccf628ee6")  # 使用默认语音ID
         
         headers = {"x-api-key": api_key, "Content-Type": "application/json"}
         payload = {"voiceId": voice_id, "text": "测试", "format": "mp3"}

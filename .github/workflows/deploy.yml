@@ -45,20 +45,106 @@ jobs:
             -n $AZURE_CONTAINERAPP_NAME \
             -g $AZURE_RESOURCE_GROUP \
             --image $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ env.IMAGE_TAG }} \
+            --cpu 1.0 \
+            --memory 2.0Gi \
+            --min-replicas 1 \
+            --max-replicas 3 \
             --set-env-vars \
               RIOT_API_KEY="${{ secrets.RIOT_API_KEY }}" \
               OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
               DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN }}" \
-              VOICV_API_KEY="${{ secrets.VOICV_API_KEY }}" \
-              GAME_NAME="${{ secrets.GAME_NAME }}" \
-              TAG_LINE="${{ secrets.TAG_LINE }}" \
-              REGION="${{ secrets.REGION }}" \
-              REGION_ROUTE="${{ secrets.REGION_ROUTE }}"
+              VOICV_API_KEY="${{ secrets.VOICV_API_KEY }}"
 
-      # ✅ Step 6: 验证部署
+      # ⏳ Step 6: 等待部署完成
+      - name: Wait for deployment
+        run: |
+          echo "⏳ 等待部署完成..."
+          sleep 30
+          
+          # 检查容器状态
+          az containerapp show \
+            -n $AZURE_CONTAINERAPP_NAME \
+            -g $AZURE_RESOURCE_GROUP \
+            --query "properties.runningStatus" \
+            -o tsv
+
+      # 🔍 Step 7: 验证部署
       - name: Verify deployment
+        run: |
+          echo "🔍 验证部署状态..."
+          
+          # 检查容器应用状态
+          STATUS=$(az containerapp show \
+            -n $AZURE_CONTAINERAPP_NAME \
+            -g $AZURE_RESOURCE_GROUP \
+            --query "properties.runningStatus" \
+            -o tsv)
+          
+          if [ "$STATUS" = "Running" ]; then
+            echo "✅ 容器应用运行正常"
+          else
+            echo "❌ 容器应用状态异常: $STATUS"
+            exit 1
+          fi
+          
+          # 检查环境变量
+          echo "🔍 检查环境变量..."
+          az containerapp show \
+            -n $AZURE_CONTAINERAPP_NAME \
+            -g $AZURE_RESOURCE_GROUP \
+            --query "properties.template.containers[0].env[].name" \
+            -o table
+
+      # 🏥 Step 8: 健康检查
+      - name: Health check
+        run: |
+          echo "🏥 开始健康检查..."
+          
+          # 检查容器应用状态
+          STATUS=$(az containerapp show \
+            -n $AZURE_CONTAINERAPP_NAME \
+            -g $AZURE_RESOURCE_GROUP \
+            --query "properties.runningStatus" \
+            -o tsv)
+          
+          if [ "$STATUS" != "Running" ]; then
+            echo "❌ 容器应用未运行，状态: $STATUS"
+            exit 1
+          fi
+          
+          # 检查环境变量
+          echo "🔍 检查环境变量..."
+          ENV_VARS=$(az containerapp show \
+            -n $AZURE_CONTAINERAPP_NAME \
+            -g $AZURE_RESOURCE_GROUP \
+            --query "properties.template.containers[0].env[].name" \
+            -o tsv)
+          
+          REQUIRED_VARS=("RIOT_API_KEY" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY")
+          MISSING_VARS=()
+          
+          for var in "${REQUIRED_VARS[@]}"; do
+            if ! echo "$ENV_VARS" | grep -q "$var"; then
+              MISSING_VARS+=("$var")
+            fi
+          done
+          
+          if [ ${#MISSING_VARS[@]} -gt 0 ]; then
+            echo "❌ 缺少环境变量: ${MISSING_VARS[*]}"
+            exit 1
+          fi
+          
+          echo "✅ 健康检查通过"
+
+      # 📊 Step 9: 显示部署信息
+      - name: Display deployment info
         run: |
           echo "🚀 部署完成！"
           echo "镜像: $ACR_NAME.azurecr.io/$IMAGE_NAME:${{ env.IMAGE_TAG }}"
           echo "容器应用: $AZURE_CONTAINERAPP_NAME"
           echo "资源组: $AZURE_RESOURCE_GROUP"
+          echo "状态: $(az containerapp show -n $AZURE_CONTAINERAPP_NAME -g $AZURE_RESOURCE_GROUP --query "properties.runningStatus" -o tsv)"
+          echo ""
+          echo "🔧 故障排除命令:"
+          echo "  查看日志: az containerapp logs show -n $AZURE_CONTAINERAPP_NAME -g $AZURE_RESOURCE_GROUP"
+          echo "  查看状态: az containerapp show -n $AZURE_CONTAINERAPP_NAME -g $AZURE_RESOURCE_GROUP"

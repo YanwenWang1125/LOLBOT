@@ -16,9 +16,7 @@ def check_environment():
     
     # 检查必要的环境变量
     required_vars = [
-        "RIOT_API_KEY", "GAME_NAME", "TAG_LINE", 
-        "OPENAI_API_KEY", "DISCORD_TOKEN", 
-        "VOICV_API_KEY", "VOICV_VOICE_ID"
+        "RIOT_API_KEY", "OPENAI_API_KEY", "DISCORD_TOKEN", "VOICV_API_KEY"
     ]
     
     missing_vars = [var for var in required_vars if not os.getenv(var)]

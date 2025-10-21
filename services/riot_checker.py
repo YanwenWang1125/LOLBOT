@@ -452,9 +452,11 @@ def main():
         print("错误: 请在.env文件中设置RIOT_API_KEY")
         return False
     
-    if not GAME_NAME or not TAG_LINE:
-        print("错误: 请在.env文件中设置GAME_NAME和TAG_LINE")
-        return False
+    # GAME_NAME 和 TAG_LINE 现在有默认值，不需要强制检查
+    if not GAME_NAME:
+        GAME_NAME = "exm233"  # 设置默认值
+    if not TAG_LINE:
+        TAG_LINE = "233"  # 设置默认值
     
     try:
         print(f"正在获取玩家信息: {GAME_NAME}#{TAG_LINE}")

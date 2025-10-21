@@ -42,7 +42,7 @@ check_azure_cli() {
 
 # 检查环境变量
 check_env_vars() {
-    local required_vars=("RIOT_API_KEY" "GAME_NAME" "TAG_LINE" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY" "VOICV_VOICE_ID")
+    local required_vars=("RIOT_API_KEY" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY")
     local missing_vars=()
     
     for var in "${required_vars[@]}"; do
