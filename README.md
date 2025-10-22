@@ -1,167 +1,342 @@
-# 多游戏数据分析工作流程
+# 🎮 LOLBOT - Multi-Game AI Analysis Discord Bot
 
-这是一个完整的游戏数据分析系统，支持英雄联盟和Valorant，能够自动获取游戏数据、生成AI分析、合成语音并在Discord中播放。
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![Discord.py](https://img.shields.io/badge/Discord.py-2.3+-blue.svg)](https://discordpy.readthedocs.io)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Azure](https://img.shields.io/badge/Deploy-Azure-blue.svg)](QUICK_DEPLOY.md)
 
-## 🎮 功能特性
+A comprehensive Discord bot that provides real-time game analysis for **League of Legends** and **Valorant**, featuring AI-powered Chinese commentary, voice synthesis, and automatic game monitoring.
 
-- **多游戏支持**: 支持英雄联盟和Valorant游戏数据分析
-- **自动数据获取**: 通过Riot Games API和Henrik API获取最新游戏数据
-- **AI智能分析**: 使用OpenAI GPT生成成熟语调的中文分析
-- **语音合成**: 使用VoicV TTS API将分析转换为语音
-- **Discord集成**: 在Discord语音频道中播放分析音频
-- **模块化设计**: 清晰的目录结构，易于维护和扩展
+## ✨ Key Features
 
-## 📁 项目结构
+### 🎯 Multi-Game Support
+- **League of Legends**: Complete match analysis with KDA calculations
+- **Valorant**: Ranked match analysis with performance metrics
+- **Real-time Monitoring**: Automatic game detection and analysis
 
-```
-project-root/
-├─ analysis/                  # 生成的 match_analysis_*.json（步骤1 输出）
-├─ audio/                     # 生成的语音 mp3（步骤3 输出）
-├─ bots/
-│  └─ discord_bot.py          # 主入口（步骤4）
-├─ services/
-│  ├─ riot_checker.py         # 步骤1：获取并保存对局 JSON
-│  ├─ match_analyzer.py       # 步骤2：调用 OpenAI → 中文分析
-│  ├─ voicv_tts.py            # 步骤3：VoicV TTS 合成
-│  └─ utils.py                # 公共工具函数
-├─ .env                       # 环境变量配置
-├─ requirements.txt
-├─ main.py                    # 主入口文件
-└─ README.md
-```
+### 🤖 AI-Powered Analysis
+- **Chinese Commentary**: Natural, mature-toned analysis in Chinese
+- **Multiple Personalities**: Various commentator styles (professional, casual, humorous)
+- **Smart Insights**: AI-generated performance analysis and recommendations
 
-## 🚀 快速开始
+### 🎵 Voice Integration
+- **Text-to-Speech**: High-quality Chinese voice synthesis
+- **Voice Cloning**: Custom voice personalities for different styles
+- **Discord Audio**: Seamless voice channel integration
 
-### 1. 安装依赖
+### 🔄 Automated Workflows
+- **Auto-Monitoring**: Detects when users are in games
+- **Smart Triggers**: Automatic analysis when games end
+- **Voice Channel Integration**: Plays analysis in user's voice channel
 
-```bash
-pip install -r requirements.txt
-```
+## 🚀 Quick Start
 
-### 2. 配置环境变量
+### Prerequisites
+- Python 3.11+
+- Discord Bot Token
+- Riot Games API Key
+- OpenAI API Key
+- VoicV API Key
 
-创建 `.env` 文件并设置以下变量：
+### Installation
 
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/YanwenWang1125/LOLBOT.git
+   cd lolbot
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Configure environment variables**
+   ```bash
+   cp env.example .env
+   # Edit .env with your API keys
+   ```
+
+4. **Run the bot**
+   ```bash
+   python main.py
+   ```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `RIOT_API_KEY` | Riot Games API key | ✅ | - |
+| `OPENAI_API_KEY` | OpenAI API key | ✅ | - |
+| `DISCORD_TOKEN` | Discord bot token | ✅ | - |
+| `VOICV_API_KEY` | VoicV TTS API key | ✅ | - |
+| `VOICV_VOICE_ID` | VoicV voice ID | ✅ | - |
+| `GAME_NAME` | Default game username | ❌ | - |
+| `TAG_LINE` | Default game tag | ❌ | - |
+| `REGION` | Game region | ❌ | na1 |
+| `REGION_ROUTE` | API region route | ❌ | americas |
+
+### Example `.env` file
 ```env
-# Riot Games API
+# API Keys
 RIOT_API_KEY=your_riot_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+DISCORD_TOKEN=your_discord_bot_token_here
+VOICV_API_KEY=your_voicv_api_key_here
+VOICV_VOICE_ID=your_voicv_voice_id_here
+
+# Game Configuration
 GAME_NAME=YourGameName
 TAG_LINE=YourTagLine
 REGION=na1
 REGION_ROUTE=americas
-
-# OpenAI API
-OPENAI_API_KEY=your_openai_api_key_here
-
-# Discord Bot
-DISCORD_TOKEN=your_discord_bot_token_here
-
-# VoicV TTS
-VOICV_API_KEY=your_voicv_api_key_here
-VOICV_VOICE_ID=your_voicv_voice_id_here
 ```
 
-### 3. 运行程序
+## 🎮 Discord Commands
 
+### Game Analysis Commands
 ```bash
+!lol username#tag [style]     # Analyze League of Legends match
+!va username#tag [style]      # Analyze Valorant match
+!test                        # Test workflow without audio
+```
+
+### User Management Commands
+```bash
+!register_riot username#tag   # Register your Riot ID
+!unregister_riot             # Unregister your Riot ID
+!check_presence [RiotID]     # Check user presence status
+!online_players              # Show online players
+!voice_players               # Show players in voice channels
+```
+
+### Monitoring Commands
+```bash
+!start_monitoring            # Start automatic game monitoring
+!stop_monitoring             # Stop game monitoring
+!monitoring_status           # Check monitoring status
+```
+
+### System Commands
+```bash
+!files                       # Show file statistics
+!maintenance_status          # Check system health
+```
+
+## 🎨 Analysis Styles
+
+The bot supports multiple commentator personalities:
+
+| Style | Description | Voice |
+|-------|-------------|-------|
+| `default` | Casual, humorous | Default |
+| `kfk_dp` | Professional esports analysis | Professional |
+| `azi` | Virtual streamer personality | Azi |
+| `dingzhen` | Professional commentator | Dingzhen |
+| `taffy` | Casual, friendly analysis | Taffy |
+| `lol_loveu` | Gentle, caring big brother | LoveU |
+| `lol_keli` | Virtual streamer style | Keli |
+
+## 🏗️ Project Structure
+
+```
+lolbot/
+├── 📁 analysis/              # Generated match analysis files
+├── 📁 audio/                 # Generated TTS audio files
+├── 📁 audio_source/          # Voice cloning source files
+├── 📁 bots/                  # Discord bot implementation
+│   ├── discord_bot.py        # Main bot logic
+│   └── commands_presence.py  # Presence management commands
+├── 📁 data/                  # User data and configurations
+├── 📁 prompts/               # AI prompt templates
+│   ├── config.json           # Style configurations
+│   └── *.txt                 # Prompt templates
+├── 📁 services/              # Core service modules
+│   ├── riot_checker.py       # League of Legends API
+│   ├── valorant_checker.py   # Valorant API
+│   ├── match_analyzer.py     # LOL analysis engine
+│   ├── va_match_analyzer.py  # Valorant analysis engine
+│   ├── voicv_tts.py          # Text-to-speech service
+│   ├── presence_manager.py   # User presence tracking
+│   └── game_monitor.py       # Automatic game monitoring
+├── 📁 test/                  # Test files
+├── main.py                   # Application entry point
+├── health_check.py           # System health monitoring
+└── requirements.txt           # Python dependencies
+```
+
+## 🔄 Workflow System
+
+### Automatic Game Analysis
+1. **User Detection**: Bot detects user in voice channel
+2. **Game Monitoring**: Continuous monitoring of game status
+3. **Game End Detection**: Automatic detection when game ends
+4. **Data Retrieval**: Fetch match data from APIs
+5. **AI Analysis**: Generate Chinese commentary
+6. **Voice Synthesis**: Convert text to speech
+7. **Audio Playback**: Play in Discord voice channel
+8. **Cleanup**: Remove temporary files
+
+### Manual Analysis
+1. **Command Trigger**: User runs `!lol` or `!va` command
+2. **Data Retrieval**: Fetch latest match data
+3. **AI Analysis**: Generate analysis with selected style
+4. **Voice Synthesis**: Create audio file
+5. **Audio Playback**: Play in user's voice channel
+
+## 🚀 Deployment
+
+### Local Development
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp env.example .env
+# Edit .env with your keys
+
+# Run the bot
 python main.py
 ```
 
-## 🎯 工作流程
+### Azure Deployment
+For production deployment on Azure, see [QUICK_DEPLOY.md](QUICK_DEPLOY.md) for detailed instructions.
 
-### 步骤1: 获取游戏数据 🔍
-- 调用Riot Games API获取玩家最新游戏数据
-- 分析游戏表现，识别MVP和LVP
-- 保存为JSON文件到 `analysis/` 目录
+```bash
+# Quick Azure deployment
+chmod +x deploy-azure.sh
+./deploy-azure.sh container-apps
+```
 
-### 步骤2: AI中文分析 🤖
-- 使用OpenAI GPT-4生成成熟语调的中文分析
-- 采用"御姐"风格，兼具理性和情感
-- 包含语气标签和停顿标记
+### Docker Deployment
+```bash
+# Build and run with Docker
+docker build -t lolbot .
+docker run -d --env-file .env lolbot
+```
 
-### 步骤3: 语音合成 🎵
-- 使用VoicV TTS API将中文分析转换为语音
-- 支持自定义声音克隆
-- 保存为MP3文件到 `audio/` 目录
+## 🔧 API Integration
 
-### 步骤4: Discord播放 🔊
-- 连接Discord语音频道
-- 使用ffmpeg-python自动查找FFmpeg播放生成的音频
-- 播放完成后自动断开连接
+### Riot Games API
+- **Summoner Information**: Get player details and match history
+- **Match Data**: Detailed match analysis and statistics
+- **Champion Data**: Champion name translation and statistics
 
-## 🤖 Discord Bot 命令
+### Henrik API (Valorant)
+- **Player Data**: Valorant player information and rank
+- **Match History**: Recent matches and performance data
+- **Region Support**: Multiple region support
 
-- `!lol [语音频道ID]` - 运行完整分析流程
-- `!test` - 测试工作流程（不播放音频）
+### OpenAI Integration
+- **GPT-4 Analysis**: Advanced game analysis and commentary
+- **Style Customization**: Multiple personality styles
+- **Chinese Language**: Natural Chinese commentary generation
 
-## 🔧 技术栈
+### VoicV TTS
+- **Voice Synthesis**: High-quality Chinese text-to-speech
+- **Voice Cloning**: Custom voice personalities
+- **Audio Optimization**: Optimized for Discord playback
 
-- **数据获取**: Riot Games API
-- **AI分析**: OpenAI GPT-4
-- **语音合成**: VoicV TTS API
-- **语音播放**: Discord.py + ffmpeg-python
-- **数据存储**: JSON文件 + 音频文件
+## 🐛 Troubleshooting
 
-## 📋 环境变量说明
+### Common Issues
 
-| 变量名 | 描述 | 必需 | 默认值 |
-|--------|------|------|--------|
-| `RIOT_API_KEY` | Riot Games API密钥 | ✅ | - |
-| `GAME_NAME` | 游戏名称（#号前部分） | ✅ | - |
-| `TAG_LINE` | 标签（#号后部分） | ✅ | - |
-| `REGION` | 平台区域 | ❌ | na1 |
-| `REGION_ROUTE` | 区域路由 | ❌ | americas |
-| `OPENAI_API_KEY` | OpenAI API密钥 | ✅ | - |
-| `DISCORD_TOKEN` | Discord Bot令牌 | ✅ | - |
-| `VOICV_API_KEY` | VoicV API密钥 | ✅ | - |
-| `VOICV_VOICE_ID` | VoicV声音ID | ✅ | - |
+#### API Connection Problems
+```bash
+# Test API connections
+python health_check.py
+```
 
-## 🛠️ 开发说明
+#### Discord Bot Issues
+- Ensure bot has proper permissions
+- Check if bot is in the correct voice channel
+- Verify Discord token is valid
 
-### 模块化设计
-- `services/` - 核心服务模块
-- `bots/` - Discord Bot相关功能
-- `utils.py` - 公共工具函数
+#### Audio Playback Issues
+- Ensure FFmpeg is installed
+- Check voice channel permissions
+- Verify audio file generation
 
-### 扩展功能
-- 支持自定义分析风格
-- 可配置语音参数
-- 支持多种输出格式
+### Debug Commands
+```bash
+!test                        # Test complete workflow
+!files                       # Check file system status
+!maintenance_status          # Check system health
+```
 
-## 📝 使用示例
+### Logs and Monitoring
+```bash
+# Check system health
+python health_check.py --json
 
-1. **启动Discord Bot**:
-   ```bash
-   python main.py
-   # 选择选项 1
-   ```
+# View detailed logs
+tail -f logs/bot.log
+```
 
-2. **在Discord中使用**:
-   ```
-   !lol 123456789012345678  # 指定语音频道ID
-   !lol                     # 使用当前语音频道
-   !test                    # 测试模式
-   ```
+## 📊 Performance & Monitoring
 
-3. **测试工作流程**:
-   ```bash
-   python main.py
-   # 选择选项 2
-   ```
+### System Requirements
+- **CPU**: 1 vCPU minimum
+- **RAM**: 2GB minimum
+- **Storage**: 10GB for audio files
+- **Network**: Stable internet connection
 
-## 🐛 故障排除
+### Monitoring
+- **Health Checks**: Automatic system health monitoring
+- **File Management**: Automatic cleanup of old files
+- **API Rate Limiting**: Respectful API usage
+- **Error Tracking**: Comprehensive error logging
 
-### 常见问题
+## 🤝 Contributing
 
-1. **API密钥错误**: 检查 `.env` 文件中的API密钥是否正确
-2. **网络连接问题**: 确保网络连接正常，API服务可用
-3. **Discord权限**: 确保Bot有语音频道权限
-4. **FFmpeg安装**: 确保系统已安装FFmpeg，ffmpeg-python会自动查找
+### Development Setup
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-### 调试模式
+### Code Style
+- Follow PEP 8 guidelines
+- Add type hints where possible
+- Include docstrings for functions
+- Write comprehensive tests
 
-使用 `!test` 命令可以测试前3个步骤，不进行Discord播放。
+### Adding New Features
+1. **New Games**: Add API integration in `services/`
+2. **New Styles**: Add prompt templates in `prompts/`
+3. **New Commands**: Add command handlers in `bots/`
+4. **New Services**: Add service modules in `services/`
 
-## 📄 许可证
+## 📄 License
 
-本项目仅供学习和个人使用。
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **Riot Games**: For the comprehensive League of Legends API
+- **Henrik**: For the Valorant API service
+- **OpenAI**: For the powerful GPT-4 analysis capabilities
+- **VoicV**: For the high-quality Chinese TTS service
+- **Discord.py**: For the excellent Discord bot framework
+
+## 📞 Support
+
+### Getting Help
+- **Issues**: Report bugs and feature requests on GitHub
+- **Discussions**: Join community discussions
+- **Documentation**: Check the detailed documentation in each module
+
+### Resources
+- [Riot Games API Documentation](https://developer.riotgames.com/)
+- [Discord.py Documentation](https://discordpy.readthedocs.io/)
+- [OpenAI API Documentation](https://platform.openai.com/docs)
+- [VoicV API Documentation](https://voicv.com/docs)
+
+---
+
+**Made with ❤️ for the gaming community**
+
+*Transform your gaming experience with AI-powered analysis and commentary!*
