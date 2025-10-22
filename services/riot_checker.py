@@ -181,8 +181,37 @@ load_dotenv()
 RIOT_API_KEY = os.getenv("RIOT_API_KEY")
 GAME_NAME = os.getenv("GAME_NAME")
 TAG_LINE = os.getenv("TAG_LINE")
-REGION = os.getenv("REGION", "na1")
-REGION_ROUTE = os.getenv("REGION_ROUTE", "americas")
+
+# Normalize region settings to avoid invalid host labels in cloud envs
+def _normalize(s: str | None) -> str | None:
+    if s is None:
+        return None
+    return s.strip()
+
+def _route_from_region(region: str) -> str:
+    r = region.lower()
+    # Map platform region to routing region per Riot docs
+    if r in ("na1", "br1", "la1", "la2", "oc1"):
+        return "americas"
+    if r in ("euw1", "eun1", "tr1", "ru1"):
+        return "europe"
+    if r in ("kr", "jp1"):
+        return "asia"
+    # Default safe route
+    return "americas"
+
+REGION = _normalize(os.getenv("REGION", "na1")) or "na1"
+if ".api.riotgames.com" in REGION:
+    REGION = REGION.replace("https://", "").replace("http://", "")
+    REGION = REGION.split(".")[0]
+REGION_ROUTE = _normalize(os.getenv("REGION_ROUTE"))
+if REGION_ROUTE:
+    # Allow users to accidentally pass full host; reduce to just the subdomain
+    REGION_ROUTE = REGION_ROUTE.replace("https://", "").replace("http://", "")
+    if REGION_ROUTE.endswith(".api.riotgames.com"):
+        REGION_ROUTE = REGION_ROUTE.split(".")[0]
+if not REGION_ROUTE:
+    REGION_ROUTE = _route_from_region(REGION)
 
 # API 端点
 ACCOUNT_BASE = f"https://{REGION_ROUTE}.api.riotgames.com/riot/account/v1"
@@ -210,7 +239,8 @@ def get_summoner_info(game_name=None, tag_line=None):
         
         # 获取账户信息 - 对用户名进行 URL 编码以处理特殊字符
         encoded_game_name = quote(target_game_name, safe='')
-        account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{encoded_game_name}/{target_tag_line}"
+        encoded_tag_line = quote(target_tag_line, safe='')
+        account_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/{encoded_game_name}/{encoded_tag_line}"
         account_response = requests.get(account_url, headers=HEADERS, timeout=10)
         account_response.raise_for_status()
         account_data = account_response.json()
@@ -231,7 +261,13 @@ def get_summoner_info(game_name=None, tag_line=None):
         }
         
     except requests.exceptions.RequestException as e:
+        # 输出更详细的错误以便云端排查（包括当前路由与平台区域）
+        try:
+            debug_url = account_url  # may not exist if failure occurred earlier
+        except Exception:
+            debug_url = f"{ACCOUNT_BASE}/accounts/by-riot-id/<name>/<tag>"
         print(f"[ERROR] 获取召唤师信息失败: {e}")
+        print(f"[DEBUG] REGION_ROUTE={REGION_ROUTE}, REGION={REGION}, URL={debug_url}")
         return None
     except KeyError as e:
         return None
