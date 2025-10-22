@@ -42,7 +42,7 @@ check_azure_cli() {
 
 # 检查环境变量
 check_env_vars() {
-    local required_vars=("RIOT_API_KEY" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY")
+    local required_vars=("RIOT_API_KEY" "VAL_API_KEY" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY")
     local missing_vars=()
     
     for var in "${required_vars[@]}"; do
@@ -102,6 +102,7 @@ deploy_container_apps() {
         --max-replicas 3 \
         --env-vars \
             RIOT_API_KEY="$RIOT_API_KEY" \
+            VAL_API_KEY="$VAL_API_KEY" \
             GAME_NAME="$GAME_NAME" \
             TAG_LINE="$TAG_LINE" \
             OPENAI_API_KEY="$OPENAI_API_KEY" \
@@ -144,6 +145,7 @@ deploy_app_service() {
         --name $APP_NAME \
         --settings \
             RIOT_API_KEY="$RIOT_API_KEY" \
+            VAL_API_KEY="$VAL_API_KEY" \
             GAME_NAME="$GAME_NAME" \
             TAG_LINE="$TAG_LINE" \
             OPENAI_API_KEY="$OPENAI_API_KEY" \

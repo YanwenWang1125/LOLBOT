@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-AUDIO_PATH = r"C:\Users\Leo\AI projects\LOLBOT\audio_source\loveu.mp3"
+AUDIO_PATH = r"C:\Users\Leo\AI projects\LOLBOT\audio_source\keli.mp4"
 if not AUDIO_PATH or not os.path.exists(AUDIO_PATH):
     print("用法: python clone_voice.py /path/to/voice.mp3"); sys.exit(1)
 

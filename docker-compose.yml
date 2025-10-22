@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     environment:
       - RIOT_API_KEY=${RIOT_API_KEY}
+      - VAL_API_KEY=${VAL_API_KEY}
       - GAME_NAME=${GAME_NAME}
       - TAG_LINE=${TAG_LINE}
       - REGION=${REGION:-na1}

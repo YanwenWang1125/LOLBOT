@@ -22,6 +22,7 @@ az login
 
 # 3. 设置环境变量
 export RIOT_API_KEY="your_riot_api_key"
+export VAL_API_KEY="your_val_api_key"
 export GAME_NAME="YourGameName"
 export TAG_LINE="YourTagLine"
 export OPENAI_API_KEY="your_openai_api_key"
@@ -67,7 +68,7 @@ az containerapp create \
   --image lolbotregistry.azurecr.io/lolbot:latest \
   --registry-server lolbotregistry.azurecr.io \
   --cpu 1.0 --memory 2.0Gi \
-  --env-vars RIOT_API_KEY=$RIOT_API_KEY GAME_NAME=$GAME_NAME TAG_LINE=$TAG_LINE OPENAI_API_KEY=$OPENAI_API_KEY DISCORD_TOKEN=$DISCORD_TOKEN VOICV_API_KEY=$VOICV_API_KEY VOICV_VOICE_ID=$VOICV_VOICE_ID
+  --env-vars RIOT_API_KEY=$RIOT_API_KEY VAL_API_KEY=$VAL_API_KEY GAME_NAME=$GAME_NAME TAG_LINE=$TAG_LINE OPENAI_API_KEY=$OPENAI_API_KEY DISCORD_TOKEN=$DISCORD_TOKEN VOICV_API_KEY=$VOICV_API_KEY VOICV_VOICE_ID=$VOICV_VOICE_ID
 ```
 
 ### 方案2: App Service
@@ -80,7 +81,7 @@ az appservice plan create --name lolbot-plan --resource-group lolbot-rg --sku B1
 az webapp create --resource-group lolbot-rg --plan lolbot-plan --name lolbot-app --runtime "PYTHON|3.11"
 
 # 3. 配置环境变量
-az webapp config appsettings set --resource-group lolbot-rg --name lolbot-app --settings RIOT_API_KEY=$RIOT_API_KEY GAME_NAME=$GAME_NAME TAG_LINE=$TAG_LINE OPENAI_API_KEY=$OPENAI_API_KEY DISCORD_TOKEN=$DISCORD_TOKEN VOICV_API_KEY=$VOICV_API_KEY VOICV_VOICE_ID=$VOICV_VOICE_ID
+az webapp config appsettings set --resource-group lolbot-rg --name lolbot-app --settings RIOT_API_KEY=$RIOT_API_KEY VAL_API_KEY=$VAL_API_KEY GAME_NAME=$GAME_NAME TAG_LINE=$TAG_LINE OPENAI_API_KEY=$OPENAI_API_KEY DISCORD_TOKEN=$DISCORD_TOKEN VOICV_API_KEY=$VOICV_API_KEY VOICV_VOICE_ID=$VOICV_VOICE_ID
 
 # 4. 部署代码
 zip -r lolbot.zip . -x "*.git*" "*.pyc" "__pycache__/*"

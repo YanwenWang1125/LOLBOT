@@ -865,6 +865,18 @@ async def on_ready():
     print("  !voice_players - 显示所有在语音频道的玩家")
     print("  !check_user_status [RiotID] - 检查用户是否在服务器中")
     print("  !show_data_location - 显示数据存储信息")
+    print("  🎮 自动监控命令:")
+    print("  !start_monitoring - 手动启动游戏监控")
+    print("  !stop_monitoring - 手动停止游戏监控")
+    print("  !monitoring_status - 查看监控状态")
+    print("  !user_status [RiotID] - 查看用户详细状态")
+    print("  !stop_all_monitoring - 停止所有监控（管理员）")
+    print("  🔧 数据维护命令:")
+    print("  !maintenance_status - 查看数据维护状态")
+    print("  !start_maintenance - 启动数据维护（管理员）")
+    print("  !stop_maintenance - 停止数据维护（管理员）")
+    print("  !test_game_detection [RiotID] - 测试游戏检测功能")
+    print("  !force_check_game [RiotID] - 强制检查游戏状态并更新数据库")
     # 动态获取可用风格
     from services.prompts import prompt_manager
     available_styles = prompt_manager.get_available_styles()

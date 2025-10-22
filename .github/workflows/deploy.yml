@@ -51,9 +51,11 @@ jobs:
             --max-replicas 3 \
             --set-env-vars \
               RIOT_API_KEY="${{ secrets.RIOT_API_KEY }}" \
+              VAL_API_KEY="${{ secrets.VAL_API_KEY }}" \
               OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}" \
               DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN }}" \
-              VOICV_API_KEY="${{ secrets.VOICV_API_KEY }}"
+              VOICV_API_KEY="${{ secrets.VOICV_API_KEY }}" \
+              VOICV_VOICE_ID="${{ secrets.VOICV_VOICE_ID }}"
 
       # ⏳ Step 6: 等待部署完成
       - name: Wait for deployment
@@ -120,7 +122,7 @@ jobs:
             --query "properties.template.containers[0].env[].name" \
             -o tsv)
           
-          REQUIRED_VARS=("RIOT_API_KEY" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY")
+          REQUIRED_VARS=("RIOT_API_KEY" "VAL_API_KEY" "OPENAI_API_KEY" "DISCORD_TOKEN" "VOICV_API_KEY" "VOICV_VOICE_ID")
           MISSING_VARS=()
           
           for var in "${REQUIRED_VARS[@]}"; do

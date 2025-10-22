@@ -199,7 +199,7 @@ class PresenceCommands(commands.Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         """
-        自动检测玩家进入/离开语音频道
+        自动检测玩家进入/离开语音频道并启动/停止游戏监控
         """
         try:
             # 检查这个用户是否已注册
@@ -214,14 +214,20 @@ class PresenceCommands(commands.Cog):
             # 检测进入语音频道
             if before.channel is None and after.channel is not None:
                 await self._notify_voice_join(member, riot_id, after.channel)
+                # 启动游戏监控
+                await self._start_game_monitoring(member, after.channel)
             
             # 检测离开语音频道
             elif before.channel is not None and after.channel is None:
                 await self._notify_voice_leave(member, riot_id, before.channel)
+                # 停止游戏监控
+                await self._stop_game_monitoring(member)
             
             # 检测切换语音频道
             elif before.channel is not None and after.channel is not None and before.channel != after.channel:
                 await self._notify_voice_switch(member, riot_id, before.channel, after.channel)
+                # 重启游戏监控（新频道）
+                await self._restart_game_monitoring(member, after.channel)
                 
         except Exception as e:
             print(f"Error in voice state update: {e}")
@@ -545,6 +551,501 @@ class PresenceCommands(commands.Cog):
             
         except Exception as e:
             await ctx.send(f"❌ Error showing data location: {str(e)}")
+    
+    @commands.command(name='start_monitoring')
+    async def start_monitoring(self, ctx):
+        """
+        手动启动游戏监控
+        Usage: !start_monitoring
+        """
+        try:
+            # 检查用户是否在语音频道中
+            if not ctx.author.voice or not ctx.author.voice.channel:
+                await ctx.send("❌ 请先加入语音频道再使用此命令")
+                return
+            
+            voice_channel = ctx.author.voice.channel
+            
+            # 启动监控
+            from services.game_monitor import monitor_manager
+            success = await monitor_manager.start_monitoring_for_user(ctx.author, voice_channel)
+            
+            if success:
+                await ctx.send("✅ **游戏监控已启动**！正在监控你的游戏状态...")
+            else:
+                await ctx.send("❌ **启动监控失败**，请确保已注册Riot ID")
+                
+        except Exception as e:
+            await ctx.send(f"❌ **启动监控失败**: {str(e)}")
+    
+    @commands.command(name='stop_monitoring')
+    async def stop_monitoring(self, ctx):
+        """
+        手动停止游戏监控
+        Usage: !stop_monitoring
+        """
+        try:
+            # 停止监控
+            from services.game_monitor import monitor_manager
+            success = await monitor_manager.stop_monitoring_for_user(ctx.author)
+            
+            if success:
+                await ctx.send("✅ **游戏监控已停止**！")
+            else:
+                await ctx.send("❌ **停止监控失败**，你可能没有正在运行的监控")
+                
+        except Exception as e:
+            await ctx.send(f"❌ **停止监控失败**: {str(e)}")
+    
+    @commands.command(name='monitoring_status')
+    async def monitoring_status(self, ctx):
+        """
+        查看当前监控状态
+        Usage: !monitoring_status
+        """
+        try:
+            from services.game_monitor import monitor_manager
+            status = monitor_manager.get_monitoring_status()
+            
+            embed = discord.Embed(
+                title="🎮 游戏监控状态",
+                color=0x0099ff,
+                timestamp=datetime.now()
+            )
+            
+            embed.add_field(
+                name="📊 活跃监控数量",
+                value=f"`{status['active_count']}` 个",
+                inline=True
+            )
+            
+            if status['monitors']:
+                monitor_list = []
+                for i, monitor in enumerate(status['monitors'][:5], 1):  # 限制显示前5个
+                    status_emoji = "🟢" if monitor['is_running'] else "🔴"
+                    monitor_list.append(
+                        f"{i}. {status_emoji} `{monitor['riot_id']}` "
+                        f"({monitor['game_type']}) - {monitor['voice_channel']}"
+                    )
+                
+                if len(status['monitors']) > 5:
+                    monitor_list.append(f"... 还有 {len(status['monitors']) - 5} 个监控")
+                
+                embed.add_field(
+                    name="🎮 活跃监控",
+                    value="\n".join(monitor_list),
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="🎮 活跃监控",
+                    value="暂无活跃监控",
+                    inline=False
+                )
+            
+            await ctx.send(embed=embed)
+                
+        except Exception as e:
+            await ctx.send(f"❌ **获取监控状态失败**: {str(e)}")
+    
+    @commands.command(name='stop_all_monitoring')
+    async def stop_all_monitoring(self, ctx):
+        """
+        停止所有游戏监控（管理员命令）
+        Usage: !stop_all_monitoring
+        """
+        try:
+            # 检查权限（可选）
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.send("❌ 此命令需要管理员权限")
+                return
+            
+            from services.game_monitor import monitor_manager
+            await monitor_manager.stop_all_monitoring()
+            
+            await ctx.send("✅ **所有游戏监控已停止**！")
+                
+        except Exception as e:
+            await ctx.send(f"❌ **停止所有监控失败**: {str(e)}")
+    
+    @commands.command(name='user_status')
+    async def user_status(self, ctx, riot_id: str = None):
+        """
+        查看用户的详细状态信息
+        Usage: !user_status [RiotID] or !user_status (查看自己)
+        """
+        try:
+            if riot_id:
+                # 检查特定 Riot ID
+                binding = self.presence_manager.get_binding_by_riot(riot_id)
+                if not binding:
+                    await ctx.send(f"❌ Riot ID `{riot_id}` 未注册")
+                    return
+                target_riot_id = riot_id
+            else:
+                # 检查当前用户
+                discord_id = str(ctx.author.id)
+                binding = self.presence_manager.get_binding_by_discord(discord_id)
+                if not binding:
+                    await ctx.send("❌ 你未注册任何 Riot ID")
+                    return
+                target_riot_id = binding['riot_id']
+            
+            # 创建状态报告
+            embed = discord.Embed(
+                title=f"👤 用户状态详情: `{target_riot_id}`",
+                color=0x0099ff,
+                timestamp=datetime.now()
+            )
+            
+            # 基本注册信息
+            embed.add_field(
+                name="📋 注册信息",
+                value=f"🎮 **游戏类型**: {binding.get('game', 'LOL')}\n"
+                      f"📅 **注册时间**: {binding.get('registered_at', 'Unknown')}\n"
+                      f"🆔 **Discord ID**: {binding.get('discord_id', 'Unknown')}",
+                inline=False
+            )
+            
+            # 实时状态信息
+            voice_status = "🎤 在语音频道" if binding.get('is_in_voice', False) else "🔇 不在语音频道"
+            game_status = "🎮 在游戏中" if binding.get('is_in_game', False) else "⏸️ 未在游戏"
+            active_match = binding.get('active_match', 'None')
+            last_check = binding.get('last_check', 'Never')
+            
+            embed.add_field(
+                name="🔄 实时状态",
+                value=f"{voice_status}\n{game_status}\n"
+                      f"🎯 **活跃比赛**: `{active_match}`\n"
+                      f"⏰ **最后检查**: {last_check}",
+                inline=False
+            )
+            
+            # 历史信息
+            last_match_id = binding.get('last_match_id', 'None')
+            embed.add_field(
+                name="📊 历史信息",
+                value=f"🏆 **最后比赛ID**: `{last_match_id}`",
+                inline=False
+            )
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(f"❌ **获取用户状态失败**: {str(e)}")
+    
+    @commands.command(name='maintenance_status')
+    async def maintenance_status(self, ctx):
+        """
+        查看数据维护状态
+        Usage: !maintenance_status
+        """
+        try:
+            from services.data_maintenance import data_maintenance
+            
+            status = data_maintenance.get_maintenance_status()
+            
+            embed = discord.Embed(
+                title="🔧 数据维护状态",
+                color=0x0099ff,
+                timestamp=datetime.now()
+            )
+            
+            status_emoji = "🟢" if status['is_running'] else "🔴"
+            embed.add_field(
+                name="📊 维护状态",
+                value=f"{status_emoji} {'运行中' if status['is_running'] else '已停止'}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="⏱️ 检查间隔",
+                value=f"`{status['interval_minutes']} 分钟`",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="🔄 下次检查",
+                value=f"`{status['next_check_in']}`",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="💡 维护功能",
+                value="• 清理过期状态数据\n• 检测异常状态\n• 数据完整性验证",
+                inline=False
+            )
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(f"❌ **获取维护状态失败**: {str(e)}")
+    
+    @commands.command(name='start_maintenance')
+    async def start_maintenance(self, ctx):
+        """
+        启动数据维护（管理员命令）
+        Usage: !start_maintenance
+        """
+        try:
+            # Check permissions
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.send("❌ 此命令需要管理员权限")
+                return
+            
+            from services.data_maintenance import data_maintenance
+            await data_maintenance.start_maintenance()
+            
+            await ctx.send("✅ **数据维护已启动**！系统将每5分钟检查一次数据状态。")
+            
+        except Exception as e:
+            await ctx.send(f"❌ **启动维护失败**: {str(e)}")
+    
+    @commands.command(name='stop_maintenance')
+    async def stop_maintenance(self, ctx):
+        """
+        停止数据维护（管理员命令）
+        Usage: !stop_maintenance
+        """
+        try:
+            # Check permissions
+            if not ctx.author.guild_permissions.administrator:
+                await ctx.send("❌ 此命令需要管理员权限")
+                return
+            
+            from services.data_maintenance import data_maintenance
+            await data_maintenance.stop_maintenance()
+            
+            await ctx.send("✅ **数据维护已停止**！")
+            
+        except Exception as e:
+            await ctx.send(f"❌ **停止维护失败**: {str(e)}")
+    
+    @commands.command(name='test_game_detection')
+    async def test_game_detection(self, ctx, riot_id: str = None):
+        """
+        测试游戏检测功能
+        Usage: !test_game_detection [RiotID] or !test_game_detection (测试自己)
+        """
+        try:
+            if riot_id:
+                target_riot_id = riot_id
+            else:
+                # 检查当前用户
+                discord_id = str(ctx.author.id)
+                binding = self.presence_manager.get_binding_by_discord(discord_id)
+                if not binding:
+                    await ctx.send("❌ 你未注册任何 Riot ID")
+                    return
+                target_riot_id = binding['riot_id']
+            
+            await ctx.send(f"🔍 **正在测试游戏检测**: `{target_riot_id}`")
+            
+            # 创建临时的 GameMonitor 来测试检测逻辑
+            from services.game_monitor import GameMonitor
+            
+            # 创建模拟的 Discord 对象
+            class MockDiscordUser:
+                def __init__(self, name, id):
+                    self.name = name
+                    self.id = id
+                    self.voice = None
+            
+            class MockVoiceChannel:
+                def __init__(self, name, id):
+                    self.name = name
+                    self.id = id
+            
+            mock_user = MockDiscordUser("TestUser", 12345)
+            mock_voice_channel = MockVoiceChannel("Test Voice", 67890)
+            
+            # 创建临时监控器
+            monitor = GameMonitor(mock_user, target_riot_id, mock_voice_channel, "LOL")
+            
+            # 测试游戏检测
+            active_match = await monitor._get_active_match()
+            
+            if active_match:
+                await ctx.send(f"✅ **检测到活跃比赛**: `{active_match}`")
+            else:
+                await ctx.send("❌ **未检测到活跃比赛**")
+                
+            # 显示调试信息
+            await ctx.send("📊 **检测详情**: 请查看控制台日志获取详细调试信息")
+            
+        except Exception as e:
+            await ctx.send(f"❌ **测试游戏检测失败**: {str(e)}")
+    
+    @commands.command(name='force_check_game')
+    async def force_check_game(self, ctx, riot_id: str = None):
+        """
+        强制检查用户游戏状态并更新数据库
+        Usage: !force_check_game [RiotID] or !force_check_game (检查自己)
+        """
+        try:
+            if riot_id:
+                target_riot_id = riot_id
+            else:
+                # 检查当前用户
+                discord_id = str(ctx.author.id)
+                binding = self.presence_manager.get_binding_by_discord(discord_id)
+                if not binding:
+                    await ctx.send("❌ 你未注册任何 Riot ID")
+                    return
+                target_riot_id = binding['riot_id']
+            
+            await ctx.send(f"🔍 **强制检查游戏状态**: `{target_riot_id}`")
+            
+            # 解析 Riot ID
+            if '#' not in target_riot_id:
+                await ctx.send("❌ 无效的 Riot ID 格式")
+                return
+            
+            game_name, tag_line = target_riot_id.split('#', 1)
+            
+            # 导入 Riot API 检查函数
+            from services.riot_checker import get_summoner_info, get_recent_matches, get_match_details
+            from datetime import datetime
+            
+            try:
+                # 1. 获取召唤师信息
+                await ctx.send("📡 正在获取召唤师信息...")
+                summoner_info = get_summoner_info(game_name, tag_line)
+                if not summoner_info:
+                    await ctx.send("❌ 无法获取召唤师信息，请检查 Riot ID 是否正确")
+                    return
+                
+                await ctx.send(f"✅ 召唤师信息: {summoner_info['summoner_name']} (等级 {summoner_info['summoner_level']})")
+                
+                # 2. 获取最近比赛
+                await ctx.send("🎮 正在检查最近比赛...")
+                recent_matches = get_recent_matches(summoner_info['puuid'], 1)
+                if not recent_matches:
+                    await ctx.send("❌ 未找到最近比赛")
+                    return
+                
+                match_id = recent_matches[0]
+                await ctx.send(f"📋 最近比赛ID: `{match_id}`")
+                
+                # 3. 获取比赛详情
+                await ctx.send("🔍 正在分析比赛状态...")
+                match_data = get_match_details(match_id)
+                if not match_data:
+                    await ctx.send("❌ 无法获取比赛详情")
+                    return
+                
+                # 4. 分析比赛状态
+                game_duration = match_data['info']['gameDuration']
+                game_creation = match_data['info']['gameCreation']
+                current_time = datetime.now().timestamp() * 1000
+                time_since_creation = current_time - game_creation
+                
+                # 判断比赛是否活跃
+                is_recent = time_since_creation < 600000  # 10分钟
+                is_short_duration = game_duration < 600  # 10分钟
+                is_reasonable_duration = 60 <= game_duration <= 3600  # 1-60分钟
+                
+                # 创建状态报告
+                embed = discord.Embed(
+                    title=f"🎮 游戏状态检查: `{target_riot_id}`",
+                    color=0x0099ff,
+                    timestamp=datetime.now()
+                )
+                
+                embed.add_field(
+                    name="📊 比赛信息",
+                    value=f"**比赛ID**: `{match_id}`\n"
+                          f"**游戏时长**: {game_duration} 秒 ({game_duration/60:.1f} 分钟)\n"
+                          f"**开始时间**: {datetime.fromtimestamp(game_creation/1000).strftime('%Y-%m-%d %H:%M:%S')}\n"
+                          f"**距离开始**: {time_since_creation/1000/60:.1f} 分钟前",
+                    inline=False
+                )
+                
+                # 判断比赛状态
+                if is_recent and (is_short_duration or is_reasonable_duration):
+                    embed.color = 0x00ff00  # 绿色 - 活跃
+                    embed.add_field(
+                        name="🎯 检测结果",
+                        value="✅ **比赛正在进行中**\n"
+                              f"🟢 最近开始: {is_recent}\n"
+                              f"🟢 合理时长: {is_short_duration or is_reasonable_duration}",
+                        inline=False
+                    )
+                    
+                    # 更新数据库状态
+                    self.presence_manager.update_user_status(
+                        riot_id=target_riot_id,
+                        is_in_voice=True,  # 假设在语音频道
+                        is_in_game=True,
+                        active_match=match_id,
+                        last_check=datetime.now().isoformat()
+                    )
+                    
+                    await ctx.send("✅ **状态已更新**: 用户正在游戏中")
+                    
+                else:
+                    embed.color = 0xff6600  # 橙色 - 可能结束
+                    embed.add_field(
+                        name="🎯 检测结果",
+                        value="⚠️ **比赛可能已结束**\n"
+                              f"🔴 最近开始: {is_recent}\n"
+                              f"🔴 合理时长: {is_short_duration or is_reasonable_duration}",
+                        inline=False
+                    )
+                    
+                    # 更新数据库状态
+                    self.presence_manager.update_user_status(
+                        riot_id=target_riot_id,
+                        is_in_voice=True,  # 假设在语音频道
+                        is_in_game=False,
+                        active_match=None,
+                        last_check=datetime.now().isoformat()
+                    )
+                    
+                    await ctx.send("⚠️ **状态已更新**: 用户不在游戏中")
+                
+                await ctx.send(embed=embed)
+                
+            except Exception as e:
+                await ctx.send(f"❌ **检查游戏状态失败**: {str(e)}")
+                print(f"Error in force_check_game: {e}")
+            
+        except Exception as e:
+            await ctx.send(f"❌ **强制检查失败**: {str(e)}")
+    
+    async def _start_game_monitoring(self, member, voice_channel):
+        """启动游戏监控"""
+        try:
+            from services.game_monitor import monitor_manager
+            success = await monitor_manager.start_monitoring_for_user(member, voice_channel)
+            if success:
+                print(f"✅ 游戏监控已启动: {member.name}")
+            else:
+                print(f"❌ 游戏监控启动失败: {member.name}")
+        except Exception as e:
+            print(f"❌ 启动游戏监控错误: {e}")
+    
+    async def _stop_game_monitoring(self, member):
+        """停止游戏监控"""
+        try:
+            from services.game_monitor import monitor_manager
+            success = await monitor_manager.stop_monitoring_for_user(member)
+            if success:
+                print(f"✅ 游戏监控已停止: {member.name}")
+            else:
+                print(f"❌ 游戏监控停止失败: {member.name}")
+        except Exception as e:
+            print(f"❌ 停止游戏监控错误: {e}")
+    
+    async def _restart_game_monitoring(self, member, new_voice_channel):
+        """重启游戏监控（切换频道时）"""
+        try:
+            # 先停止旧的监控
+            await self._stop_game_monitoring(member)
+            # 启动新的监控
+            await self._start_game_monitoring(member, new_voice_channel)
+        except Exception as e:
+            print(f"❌ 重启游戏监控错误: {e}")
 
 def setup(bot):
     bot.add_cog(PresenceCommands(bot))

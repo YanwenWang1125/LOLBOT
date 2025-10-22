@@ -279,3 +279,43 @@ class PresenceManager:
         except Exception as e:
             print(f"Error getting voice players: {e}")
             return []
+    
+    def update_user_status(self, riot_id: str, is_in_voice: bool, is_in_game: bool, active_match: Optional[str] = None, last_check: Optional[str] = None) -> bool:
+        """
+        Update user's real-time status in player_links.json
+        Args:
+            riot_id: Riot ID to update
+            is_in_voice: Whether user is in voice channel
+            is_in_game: Whether user is currently in a game
+            active_match: Current active match ID (if any)
+            last_check: Timestamp of last status check
+        Returns: bool indicating success
+        """
+        try:
+            data = self.load_bindings()
+            
+            # Find the user and update their status
+            for player in data["players"]:
+                if player["riot_id"] == riot_id:
+                    # Update status fields
+                    player["is_in_voice"] = is_in_voice
+                    player["is_in_game"] = is_in_game
+                    player["active_match"] = active_match
+                    if last_check:
+                        player["last_check"] = last_check
+                    else:
+                        player["last_check"] = datetime.now().isoformat()
+                    
+                    # Update last_match_id if we have an active match
+                    if active_match:
+                        player["last_match_id"] = active_match
+                    
+                    return self.save_bindings(data)
+            
+            # User not found
+            print(f"WARNING: User {riot_id} not found for status update")
+            return False
+            
+        except Exception as e:
+            print(f"ERROR: Failed to update user status: {e}")
+            return False

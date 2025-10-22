@@ -291,8 +291,36 @@ def analyze_match_data(match_data, summoner_info):
                 team_info = team
                 break
         
+        # 如果找不到匹配的团队ID，尝试其他匹配方式
+        if not team_info:
+            # 尝试根据玩家团队ID找到对应的团队
+            # 通常团队ID 100 对应蓝色方，200 对应红色方
+            if player_team_id == 200:
+                # 寻找红色方团队（通常是ID 200或1）
+                for team in match_data['info']['teams']:
+                    if team['teamId'] in [200, 1]:
+                        team_info = team
+                        break
+            elif player_team_id == 100:
+                # 寻找蓝色方团队（通常是ID 100或0）
+                for team in match_data['info']['teams']:
+                    if team['teamId'] in [100, 0]:
+                        team_info = team
+                        break
+            
+            # 如果还是找不到，使用第一个团队
+            if not team_info and match_data['info']['teams']:
+                team_info = match_data['info']['teams'][0]
+            elif not team_info:
+                raise ValueError("未找到任何团队信息")
+        
         # 找到MVP和LVP（团队内表现最好和最差的玩家）
         team_participants = [p for p in match_data['info']['participants'] if p['teamId'] == player_team_id]
+        
+        # 如果找不到匹配的团队参与者，尝试使用所有参与者
+        if not team_participants:
+            # 使用所有参与者作为备选
+            team_participants = match_data['info']['participants']
         
         # 按KDA评分排序
         def calculate_kda_score(participant):
@@ -314,7 +342,6 @@ def analyze_match_data(match_data, summoner_info):
         mvp_name = mvp.get('summonerName', '') or mvp.get('riotIdGameName', '')
         lvp_name = lvp.get('summonerName', '') or lvp.get('riotIdGameName', '')
         
-        # 调试信息
         
         # 构建分析结果
         analysis = {
