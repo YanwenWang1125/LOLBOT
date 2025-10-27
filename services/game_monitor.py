@@ -140,6 +140,12 @@ class GameMonitor:
                         self.check_interval = 30  # Reset to active monitoring
                         self.idle_count = 0
                     else:
+                        # No active match found
+                        if self.last_match_id is not None:
+                            # We were tracking a match but now it's not active - it likely ended
+                            print(f"TRANSITION Match {self.last_match_id[:8]}... no longer active for {self.riot_id}")
+                            self.last_match_id = None
+                        
                         print(f"PAUSE 用户 {self.riot_id} not in game")
                         await self._update_user_status(is_in_voice=True, is_in_game=False, active_match=None)
                         self.idle_count += 1
@@ -201,43 +207,40 @@ class GameMonitor:
             if not summoner_info:
                 return None
             
-            # Get recent matches (check if any are very recent)
-            recent_matches = get_recent_matches(summoner_info['puuid'], 1)
+            # Get recent matches (check multiple recent matches)
+            recent_matches = get_recent_matches(summoner_info['puuid'], 5)
             if not recent_matches:
                 return None
             
-            # Get match details to check if it's still active
-            match_id = recent_matches[0]
-            match_data = get_match_details(match_id)
-            if not match_data:
-                return None
-            
-            # Check if match is still in progress
-            game_duration = match_data['info']['gameDuration']
-            game_creation = match_data['info']['gameCreation']
             current_time = datetime.now().timestamp() * 1000
             
-            # Calculate time since game started
-            time_since_creation = current_time - game_creation
-            
-            # More flexible detection logic:
-            # 1. If game is very recent (within 10 minutes) - likely still active
-            # 2. If game duration is reasonable (between 1-60 minutes) - likely active
-            # 3. If game is very recent AND short duration - definitely active
-            
-            is_recent = time_since_creation < 600000  # 10 minutes
-            is_short_duration = game_duration < 600  # 10 minutes
-            is_reasonable_duration = 60 <= game_duration <= 3600  # 1-60 minutes
-            
-            # Debug information
-            print(f"DEBUG: {self.riot_id} - Duration: {game_duration}s, Time since creation: {time_since_creation/1000/60:.1f}min")
-            
-            if is_recent and (is_short_duration or is_reasonable_duration):
-                print(f"DEBUG: {self.riot_id} - Match detected as active")
-                return match_id
-            elif is_recent and game_duration < 60:  # Very short duration, likely just started
-                print(f"DEBUG: {self.riot_id} - Very recent match detected")
-                return match_id
+            # Check each recent match to find one that's actually ongoing
+            for match_id in recent_matches:
+                match_data = get_match_details(match_id)
+                if not match_data:
+                    continue
+                
+                game_duration = match_data['info']['gameDuration']
+                game_creation = match_data['info']['gameCreation']
+                
+                # Calculate time since game started
+                time_since_creation = current_time - game_creation
+                
+                # Check if this match is actually ongoing:
+                # 1. Game must be very recent (within 5 minutes of creation)
+                # 2. Game duration should be reasonable (between 30 seconds and 50 minutes)
+                # 3. Game should not be too old
+                
+                is_very_recent = time_since_creation < 300000  # 5 minutes
+                is_reasonable_duration = 30 <= game_duration <= 3000  # 30 seconds to 50 minutes
+                is_not_too_old = time_since_creation < 3600000  # Less than 1 hour old
+                
+                # Debug information
+                print(f"DEBUG: {self.riot_id} - Match {match_id[:8]}... Duration: {game_duration}s, Time since creation: {time_since_creation/1000/60:.1f}min")
+                
+                if is_very_recent and is_reasonable_duration and is_not_too_old:
+                    print(f"DEBUG: {self.riot_id} - Active match detected: {match_id[:8]}...")
+                    return match_id
             
             return None
             
@@ -282,7 +285,9 @@ class GameMonitor:
                 if await self._is_match_ended(match_id):
                     print(f"FINISH Match ended: {self.riot_id} - {match_id}")
                     await self._handle_match_end(match_id)
+                    # Reset last_match_id to allow detection of new matches
                     self.last_match_id = None
+                    print(f"RESET Ready to detect new matches for {self.riot_id}")
         except Exception as e:
             print(f"ERROR Error handling active match: {e}")
     
@@ -292,9 +297,27 @@ class GameMonitor:
             if self.game_type == "LOL":
                 match_data = get_match_details(match_id)
                 if match_data:
-                    # Check if match duration is reasonable (not too short, not too long)
                     game_duration = match_data['info']['gameDuration']
-                    return game_duration > 600  # More than 10 minutes
+                    game_creation = match_data['info']['gameCreation']
+                    current_time = datetime.now().timestamp() * 1000
+                    
+                    # Calculate time since game started
+                    time_since_creation = current_time - game_creation
+                    
+                    # A match is considered ended if:
+                    # 1. Game duration is longer than 50 minutes (unlikely to be ongoing)
+                    # 2. Game is older than 1 hour (definitely ended)
+                    # 3. Game duration is reasonable but game is older than 10 minutes (likely ended)
+                    
+                    is_too_long = game_duration > 3000  # More than 50 minutes
+                    is_too_old = time_since_creation > 3600000  # More than 1 hour old
+                    is_likely_ended = game_duration > 600 and time_since_creation > 600000  # More than 10 min duration and 10 min old
+                    
+                    if is_too_long or is_too_old or is_likely_ended:
+                        print(f"DEBUG: Match {match_id[:8]}... ended - Duration: {game_duration}s, Age: {time_since_creation/1000/60:.1f}min")
+                        return True
+                    
+                    return False
             elif self.game_type == "VALORANT":
                 # For Valorant, we'd need to implement proper match status checking
                 return False
