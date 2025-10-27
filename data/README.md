@@ -46,10 +46,6 @@ data/
 - **`game`**: Game type (LOL, VALORANT)
 - **`registered_at`**: Registration timestamp (ISO format)
 - **`last_match_id`**: Last processed match ID
-- **`is_in_voice`**: Current voice channel status (boolean)
-- **`is_in_game`**: Current game status (boolean)
-- **`active_match`**: Current active match ID (if any)
-- **`last_check`**: Last status check timestamp (ISO format)
 
 ## 🔄 Data Management
 
@@ -75,13 +71,6 @@ presence_manager.register_binding(
     game="LOL"
 )
 
-# Update user status
-presence_manager.update_user_status(
-    riot_id="username#tag",
-    is_in_voice=True,
-    is_in_game=False,
-    active_match=None
-)
 ```
 
 ## 📊 Data Operations
@@ -100,15 +89,6 @@ def register_user(discord_id, riot_id, game="LOL"):
 
 ### **Status Updates**
 ```python
-# Update user status
-def update_status(riot_id, is_in_voice, is_in_game, active_match=None):
-    success = presence_manager.update_user_status(
-        riot_id=riot_id,
-        is_in_voice=is_in_voice,
-        is_in_game=is_in_game,
-        active_match=active_match
-    )
-    return success
 ```
 
 ### **Data Retrieval**
@@ -146,8 +126,6 @@ def validate_player_data(data):
     """Validate player data structure"""
     required_fields = [
         "discord_id", "riot_id", "game", "registered_at",
-        "last_match_id", "is_in_voice", "is_in_game", 
-        "active_match", "last_check"
     ]
     
     for field in required_fields:
@@ -257,19 +235,6 @@ user = pm.get_binding_by_riot("username#tag")
 users = pm.get_all_active_bindings()
 ```
 
-### **Status Management**
-```python
-# Update user status
-pm.update_user_status(
-    riot_id="username#tag",
-    is_in_voice=True,
-    is_in_game=False,
-    active_match="NA1_1234567890"
-)
-
-# Check user presence
-presence = pm.check_discord_presence("username#tag", bot)
-```
 
 ## 🔄 Data Workflow
 

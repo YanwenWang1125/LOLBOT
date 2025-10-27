@@ -76,7 +76,7 @@ class DataMaintenance:
             data = self.presence_manager.load_bindings()
             updated = False
             
-            # Check for stale data (older than 10 minutes)
+            # 清理过期的监控字段（如果存在）
             cutoff_time = datetime.now() - timedelta(minutes=10)
             
             for player in data["players"]:
@@ -85,17 +85,20 @@ class DataMaintenance:
                     try:
                         last_check_time = datetime.fromisoformat(last_check)
                         if last_check_time < cutoff_time:
-                            # Mark as potentially offline
-                            if player.get('is_in_voice', False) or player.get('is_in_game', False):
-                                print(f"MAINTENANCE: Marking {player['riot_id']} as potentially offline (stale data)")
-                                player['is_in_voice'] = False
-                                player['is_in_game'] = False
-                                player['active_match'] = None
-                                player['last_check'] = datetime.now().isoformat()
+                            # 清理过期的监控字段
+                            if 'is_in_voice' in player or 'is_in_game' in player or 'active_match' in player:
+                                print(f"MAINTENANCE: Cleaning stale monitoring data for {player['riot_id']}")
+                                player.pop('is_in_voice', None)
+                                player.pop('is_in_game', None)
+                                player.pop('active_match', None)
+                                player.pop('last_check', None)
                                 updated = True
                     except ValueError:
-                        # Invalid timestamp, update it
-                        player['last_check'] = datetime.now().isoformat()
+                        # 无效的时间戳，清理监控字段
+                        player.pop('is_in_voice', None)
+                        player.pop('is_in_game', None)
+                        player.pop('active_match', None)
+                        player.pop('last_check', None)
                         updated = True
             
             # Save if updated

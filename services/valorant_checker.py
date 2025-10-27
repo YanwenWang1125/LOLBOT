@@ -134,10 +134,13 @@ def get_last_match_henrik_api(game_name, tag_line, region="na"):
         player_team_won = teams[player_team.lower()]["has_won"]
         match_result = "胜利" if player_team_won else "失败"
         
-        # 构建简化的比赛信息
+        # 构建简化的比赛信息，包含时间信息用于比赛状态检测
         match_info = {
             "map": meta.get("map", "Unknown"),
             "result": match_result,
+            "gameCreation": meta.get("game_start_patched", 0) * 1000,  # Convert to milliseconds
+            "gameDuration": meta.get("game_length", 0),  # Game duration in seconds
+            "match_id": meta.get("matchid", "unknown"),
             "strongest_player": {
                 "name": teammate_mvp.get("name", "Unknown") if teammate_mvp else "N/A",
                 "character": teammate_mvp.get("character", "Unknown") if teammate_mvp else "N/A"

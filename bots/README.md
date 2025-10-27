@@ -8,7 +8,7 @@ This directory contains the core Discord bot implementation for LOLBOT, includin
 bots/
 ├── __init__.py              # Package initialization
 ├── discord_bot.py           # Main Discord bot implementation
-└── commands_presence.py     # Presence and monitoring commands
+└── commands_presence.py     # Presence commands
 ```
 
 ## 🔧 Core Components
@@ -33,11 +33,10 @@ bots/
 - `!files` - Show file statistics
 
 ### **`commands_presence.py`** - Presence Management Commands
-- **Purpose**: User presence tracking and game monitoring commands
+- **Purpose**: User presence tracking commands
 - **Key Features**:
   - Riot ID registration and management
   - User presence status tracking
-  - Automatic game monitoring
   - Voice channel event handling
   - Data maintenance commands
 
@@ -50,9 +49,6 @@ bots/
 - `!check_presence [RiotID]` - Check user presence
 - `!online_players` - Show online players
 - `!voice_players` - Show players in voice channels
-- `!start_monitoring` - Start game monitoring
-- `!stop_monitoring` - Stop game monitoring
-- `!monitoring_status` - Check monitoring status
 
 ## 🎮 Workflow System
 
@@ -73,9 +69,6 @@ bots/
 ## 🔄 Event System
 
 ### Voice Channel Events
-- **User joins voice** → Start automatic game monitoring
-- **User leaves voice** → Stop game monitoring
-- **User switches voice** → Restart monitoring in new channel
 
 ### Presence Events
 - **User comes online** → Log status change
@@ -99,14 +92,6 @@ bots/
 !user_status [RiotID]        # Detailed user status
 ```
 
-### **Monitoring Commands**
-```bash
-!start_monitoring            # Start game monitoring
-!stop_monitoring             # Stop game monitoring
-!monitoring_status           # Check monitoring status
-!online_players              # Show online players
-!voice_players               # Show voice players
-```
 
 ### **System Commands**
 ```bash
@@ -146,12 +131,6 @@ ANALYSIS_DIR = "analysis"
 - **Audio Playback**: Seamless audio playback
 - **Cleanup**: Automatic disconnection after playback
 
-## 📊 Monitoring System
-
-### Automatic Game Detection
-- **Real-time Monitoring**: Continuous game state checking
-- **Smart Intervals**: 30s during games, 90s when idle
-- **Auto-cleanup**: Stops monitoring after extended inactivity
 
 ### Status Tracking
 - **User Presence**: Discord online/offline status
@@ -226,11 +205,6 @@ success = await workflow.run_full_workflow(
 - **API Rate Limiting**: Respectful API usage
 - **Async Operations**: Non-blocking operations
 
-### Monitoring
-- **Status Tracking**: Real-time user status
-- **Error Monitoring**: Comprehensive error tracking
-- **Performance Metrics**: Response time monitoring
-- **Resource Usage**: Memory and CPU monitoring
 
 ## 🧪 Testing
 
@@ -258,7 +232,7 @@ success = await workflow.run_full_workflow(
 ### Manual Maintenance
 - **Status Commands**: Manual status checking
 - **Data Commands**: Manual data management
-- **System Commands**: System health monitoring
+- **System Commands**: System health checks
 - **Admin Commands**: Administrative operations
 
 ## 📚 Dependencies

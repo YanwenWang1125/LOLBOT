@@ -109,13 +109,6 @@ This directory contains all the core services that power the LOLBOT Discord bot.
   - Status tracking
   - Data persistence
 
-#### **`game_monitor.py`** - Automatic Game Monitoring
-- **Purpose**: Monitors user game activity and triggers automatic analysis
-- **Key Features**:
-  - Real-time game detection
-  - Automatic workflow triggering
-  - Status updates
-  - Task management
 
 ### 🔧 Maintenance Services
 
@@ -165,15 +158,11 @@ presence_manager.register_binding("discord_id", "riot_id", "LOL")
 
 ```python
 # Complete workflow example
-from services.game_monitor import GameMonitorManager
 from services.presence_manager import PresenceManager
 
 # Initialize managers
-monitor_manager = GameMonitorManager()
 presence_manager = PresenceManager()
 
-# Start monitoring for user
-await monitor_manager.start_monitoring_for_user(discord_user, voice_channel)
 ```
 
 ## 🔧 Configuration
@@ -270,7 +259,6 @@ services/
 ├── voicv_tts.py           # Text-to-speech
 ├── voicV_clone.py         # Voice cloning
 ├── presence_manager.py    # User management
-├── game_monitor.py        # Game monitoring
 ├── data_maintenance.py    # Data maintenance
 └── kda_calculator.py      # KDA calculations
 ```
@@ -280,13 +268,12 @@ services/
 ### Automatic Game Analysis Workflow
 
 1. **User enters voice channel** → `presence_manager.py`
-2. **Start game monitoring** → `game_monitor.py`
-3. **Detect active game** → `riot_checker.py` / `valorant_checker.py`
-4. **Game ends** → `match_analyzer.py` / `va_match_analyzer.py`
-5. **Generate analysis** → `prompts.py` + AI
-6. **Create audio** → `voicv_tts.py`
-7. **Play in Discord** → Discord bot integration
-8. **Cleanup** → `data_maintenance.py`
+2. **Detect active game** → `riot_checker.py` / `valorant_checker.py`
+3. **Game ends** → `match_analyzer.py` / `va_match_analyzer.py`
+4. **Generate analysis** → `prompts.py` + AI
+5. **Create audio** → `voicv_tts.py`
+6. **Play in Discord** → Discord bot integration
+7. **Cleanup** → `data_maintenance.py`
 
 ### Manual Analysis Workflow
 
@@ -306,7 +293,6 @@ services/
 - **Error Handling**: Implement comprehensive error handling
 - **Resource Management**: Clean up resources after use
 
-### Monitoring
 
 - **API Usage**: Monitor API call frequency and limits
 - **Error Rates**: Track service error rates
@@ -350,7 +336,6 @@ When adding new services:
 
 ### Version 1.0.0
 - Initial service architecture
-- Core game monitoring functionality
 - AI analysis integration
 - TTS audio generation
 - User presence management

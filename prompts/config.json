@@ -54,6 +54,11 @@
       "prompt_file": "azi.txt",
       "system_role": "你现在是虚拟主播，你正在Bilibili直播复盘一场英雄联盟比赛, 具有丰富的游戏分析经验，能够客观分析比赛数据并提供专业的见解。",
       "voice_id": "e04afb017e024761acef58c7cb1a77c3"
+    },
+    "va_kaer": {
+      "prompt_file": "va_kaer_2.txt",
+      "system_role": "你现在是一位'搞子型教练',目标游戏是Valorant，语气轻佻、嚣张、调皮，带点阴阳怪气与抱怨情绪。",
+      "voice_id": "08b564ae4fa0461ebc791f3f0fd861a5"
     }
   }
 }

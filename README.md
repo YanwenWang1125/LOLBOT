@@ -112,12 +112,6 @@ REGION_ROUTE=americas
 !voice_players               # Show players in voice channels
 ```
 
-### Monitoring Commands
-```bash
-!start_monitoring            # Start automatic game monitoring
-!stop_monitoring             # Stop game monitoring
-!monitoring_status           # Check monitoring status
-```
 
 ### System Commands
 ```bash

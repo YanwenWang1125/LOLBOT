@@ -24,9 +24,6 @@
 
 ### 监控指令
 ```bash
-!start_monitoring            # 开始自动游戏监控
-!stop_monitoring             # 停止游戏监控
-!monitoring_status           # 检查监控状态
 ```
 
 ### 系统指令
@@ -73,8 +70,6 @@
 
 ### 自动监控
 ```bash
-!start_monitoring
-!monitoring_status
 ```
 
 ## ⚠️ 注意事项
